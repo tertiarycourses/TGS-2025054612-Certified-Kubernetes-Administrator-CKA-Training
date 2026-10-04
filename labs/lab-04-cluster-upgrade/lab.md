@@ -3,13 +3,14 @@
 In this lab you upgrade a kubeadm cluster by one minor version, following the recommended
 order: control plane first, then workers, draining each node before the kubelet restart.
 
-**Lab environment:** [Play with Kubernetes](https://killercoda.com/playgrounds/course/kubernetes-playgrounds/two-node)
+**Lab environment (recommended):** this lab's own **KillerCoda scenario**, which provisions a **v1.36** single-node cluster so you can upgrade it to **v1.37** for real.
+**Alternative:** the [two-node playground](https://killercoda.com/playgrounds/course/kubernetes-playgrounds/two-node) — but it boots at the newest minor, so see [Where to do a real upgrade](#where-to-do-a-real-upgrade) before you start.
 
 > **Which version do I upgrade to?** Nothing in this lab is hard-coded. Step 1 discovers
 > what the cluster runs, Step 2 points apt at the next minor and reads the exact package
 > version from `apt-cache madison`. If your cluster is already on the newest minor — which
 > is what the shared playground gives you — read
-> [Already on the newest version?](#already-on-the-newest-version) first.
+> [Where to do a real upgrade](#where-to-do-a-real-upgrade) first.
 
 
 ## What you must be able to show
@@ -26,7 +27,7 @@ order: control plane first, then workers, draining each node before the kubelet 
 > with `Finished dryrunning successfully`, then `kubectl get nodes` still shows the old
 > version. That is the flag working as designed, not a failed lab. To see the `VERSION`
 > column actually change, you must start from a cluster that is **below** the newest
-> release — see [Already on the newest version?](#already-on-the-newest-version).
+> release — see [Where to do a real upgrade](#where-to-do-a-real-upgrade).
 
 ---
 
@@ -55,7 +56,7 @@ Note two things before you touch anything:
 - **You cannot upgrade downwards.** Compare `kubeadm version -o short` with the target in
   Step 2. If the cluster is already **newer** than the target (the shared two-node
   playground currently ships `v1.37.x`), skip to
-  [Already on the newest version?](#already-on-the-newest-version) instead of installing
+  [Where to do a real upgrade](#where-to-do-a-real-upgrade) instead of installing
   older packages over a running cluster.
 ---
 
@@ -63,9 +64,9 @@ Note two things before you touch anything:
 
 Set the target to **exactly one minor above** what Step 1 printed — kubeadm supports one
 minor step at a time (v1.36 to v1.37, never v1.35 straight to v1.37). The example below
-uses `v1.37`, the newest published minor and the one this playground already runs; on a
-v1.36 cluster you would set `v1.37`, and in this lab's KillerCoda scenario (a v1.34
-cluster) you would set `v1.35`:
+uses `v1.37`: that is the newest published minor, the one the shared playground already
+runs, and the target for this lab's KillerCoda scenario, which provisions a **v1.36**
+cluster for you:
 
 ```bash
 TARGET_MINOR=v1.37          # one minor above what Step 1 printed
@@ -147,6 +148,9 @@ Lost `$PKG` (new shell)? Re-read it with
 
 ## Step 6 — Repeat on the worker
 
+> **Single-node environment?** The KillerCoda scenario runs one node, which has already
+> been upgraded by Step 5 — there is no `node01`, so skip to the verification below.
+
 node01 has its own apt config, so repoint its repo too. On **node01**:
 
 ```bash
@@ -193,44 +197,53 @@ Both nodes should report the new version.
 
 ---
 
-## Already on the newest version?
+## Where to do a real upgrade
 
-The shared two-node playground boots a cluster that is already at the newest published
-minor, so there is nothing to upgrade *to*. Check for yourself whether the next minor
-exists before planning an upgrade — a minor that has not been released yet returns `403`:
+`kubeadm` can only move a cluster **forwards**, and only one minor at a time. So a real
+upgrade needs a cluster that starts *below* the newest release. Check what the newest
+published minor is before you plan anything — an unreleased minor returns `403`:
 
 ```bash
 NEXT=v1.38
 curl -sL -o /dev/null -w '%{http_code}\n' https://pkgs.k8s.io/core:/stable:/$NEXT/deb/Release.key
 ```
 
-`200` means that minor is published and you can upgrade to it. `403` means it does not
-exist yet — at the time of writing `v1.37` is the newest, so a `v1.37.x` cluster has no
-upgrade target. Pick one of the paths below.
+`200` means that minor exists and is a valid target. `403` means it does not exist yet — at
+the time of writing `v1.37` is the newest, so a `v1.37.x` cluster has nothing to upgrade to.
+The shared two-node playground boots at that newest minor, which is why the options below
+matter.
 
-### Option A — practise the procedure, accept no version change
+### Option A — this lab's KillerCoda scenario (recommended: a real v1.36 to v1.37 upgrade)
 
-Every command except `upgrade apply` is safe to run, and `--dry-run` shows exactly what
-would change:
+The scenario provisions its **own single-node v1.36 cluster** in the background, so you
+upgrade a genuinely older cluster and watch the minor change. Nothing needs rebuilding and
+no downgrade tricks are involved.
 
-```bash
-sudo kubeadm upgrade plan
-sudo kubeadm upgrade apply $(kubeadm version -o short) --dry-run
-kubectl drain controlplane --ignore-daemonsets
-kubectl uncordon controlplane
-kubectl get nodes
-```
+1. Open the scenario (KillerCoda profile `tertiary-labs-cka`, Lab 04) and wait for
+   provisioning to finish — it takes a couple of minutes:
 
-`upgrade plan` reports you are already on the latest version, and `get nodes` shows the
-**same** version as before. That is the expected result here, and it is how you confirm —
-in the exam and in production — that a cluster needs no upgrade. To watch a version
-change, use Option B or C.
+   ```bash
+   until [ -f /tmp/cluster-ready ]; do sleep 5; done; echo READY
+   cat /tmp/cluster-start-version.txt     # v1.36.x  <- your "before"
+   kubectl get nodes
+   ```
 
-### Option B — a real patch upgrade you can see (v1.37.0 to v1.37.1)
+2. Work through **Steps 1 to 5** with `TARGET_MINOR=v1.37`.
+3. Confirm the change:
 
-The v1.37 repo publishes both `1.37.0-1.1` and `1.37.1-1.1`, so you can rebuild the
-cluster one patch lower and then upgrade it for real. No repo repoint is needed: both
-patches live in the same minor.
+   ```bash
+   cat /tmp/cluster-before.txt             # captured at provisioning time
+   kubectl get nodes                       # VERSION v1.37.x  <- your "after"
+   ```
+
+The scenario is a single node, so skip Step 6 (the worker) there — `kubectl get nodes`
+reporting the new minor is the finish line.
+
+### Option B — patch upgrade on the shared playground (v1.37.0 to v1.37.1)
+
+If you are on the two-node playground and want a real version change without a second
+environment, rebuild one patch lower. The v1.37 repo publishes both `1.37.0-1.1` and
+`1.37.1-1.1`, so no repo repoint is needed.
 
 Run on **both** nodes — this destroys the cluster you built in Lab 2:
 
@@ -261,19 +274,13 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 kubectl get nodes                 # VERSION v1.37.0  <- your "before"
 ```
 
-Now run **Steps 2 to 5** with `TARGET_MINOR=v1.37`. `apt-cache madison` lists
-`1.37.1-1.1` as its newest entry, so `$PKG` becomes that, and you finish with:
+Then run **Steps 2 to 5** with `TARGET_MINOR=v1.37`: `apt-cache madison` lists
+`1.37.1-1.1` as its newest entry, so `$PKG` becomes that, and you finish on **v1.37.1**.
 
-```bash
-kubectl get nodes                 # VERSION v1.37.1  <- your "after"
-```
+### Option C — minor upgrade on the shared playground (v1.36 to v1.37)
 
-A changed `VERSION` column is the outcome this lab is after.
-
-### Option C — a real minor upgrade (v1.36 to v1.37)
-
-Same as Option B, but start one *minor* lower, so Step 2's repo repoint genuinely matters.
-Point apt at **v1.36** first and see what it offers:
+Same as Option B, but start one *minor* lower so Step 2's repo repoint genuinely matters.
+Point apt at **v1.36** and see what it offers:
 
 ```bash
 TARGET_MINOR=v1.36
@@ -291,10 +298,23 @@ run `kubeadm init --kubernetes-version=v1.36.<patch>`, then work through Steps 2
 `TARGET_MINOR=v1.37`. You end on v1.37.x having done the whole exercise: repo repoint,
 control plane, drain, kubelet, worker.
 
-### Option D — use this lab's own KillerCoda scenario
+### Option D — procedure only, no version change
 
-The scenario's `background.sh` provisions a **v1.34** single-node cluster for exactly this
-purpose. Run Steps 1 to 6 there with `TARGET_MINOR=v1.35` and nothing needs rebuilding.
+On a cluster already at the newest minor, every command except `upgrade apply` still runs,
+and `--dry-run` shows exactly what would change:
+
+```bash
+sudo kubeadm upgrade plan
+sudo kubeadm upgrade apply $(kubeadm version -o short) --dry-run
+kubectl drain controlplane --ignore-daemonsets
+kubectl uncordon controlplane
+kubectl get nodes
+```
+
+`upgrade plan` reports you are already on the latest version and `get nodes` shows the
+**same** version as before. Useful for rehearsing the commands, and it is how you confirm
+in production that a cluster needs no upgrade — but it does **not** demonstrate an upgrade.
+Use Option A for that.
 
 > **Never** "upgrade" by installing older packages over a *running* cluster. A kubelet
 > older than the control plane is unsupported and may refuse to start. Options B and C
@@ -308,8 +328,8 @@ purpose. Run Steps 1 to 6 there with `TARGET_MINOR=v1.35` and nothing needs rebu
 |---|---|
 | `E: Version '1.35.0-1.1' for 'kubeadm' was not found` | The apt repo still points at a different minor. Re-run Step 2's `sed` + `apt update`, then read the real string from `apt-cache madison kubeadm`. |
 | `kubeadm was already not on hold` | Harmless. `apt-mark unhold` says the package was not pinned. |
-| `upgrade plan` says you are on the latest version | Nothing to upgrade. See [Already on the newest version?](#already-on-the-newest-version). |
-| `--dry-run` finished but `kubectl get nodes` shows the old version | Correct: a dry run writes nothing. Use Option B or C to see the version change. |
+| `upgrade plan` says you are on the latest version | Nothing to upgrade. See [Where to do a real upgrade](#where-to-do-a-real-upgrade). |
+| `--dry-run` finished but `kubectl get nodes` shows the old version | Correct: a dry run writes nothing. Use Option A (the scenario's v1.36 cluster) to see the version change. |
 | `upgrade apply` refuses the version jump | You skipped a minor. Upgrade one minor at a time. |
 | Node stays `SchedulingDisabled` after the upgrade | You drained it and never uncordoned it: `kubectl uncordon <node>`. |
 

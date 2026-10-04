@@ -1,5 +1,9 @@
 # Step 6 — Repeat on the worker
 
+> **This scenario runs a single node**, so there is no `node01` and the upgrade is already
+> complete — verify with `kubectl get nodes` and finish. The steps below are for a
+> two-node environment such as the KillerCoda two-node playground.
+
 node01 has its own apt config, so repoint its repo too. On **node01**:
 
 ```bash

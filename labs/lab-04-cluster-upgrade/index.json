@@ -1,8 +1,8 @@
 {
-  "title": "Lab 4 — Cluster Upgrade with kubeadm",
-  "description": "Upgrade a kubeadm cluster one minor version at a time, repointing the Kubernetes apt repo and reading the exact package version instead of hard-coding it.",
+  "title": "Lab 4 — Cluster Upgrade with kubeadm (v1.36 to v1.37)",
+  "description": "Perform a real minor upgrade: the scenario provisions a v1.36 cluster, and you repoint the Kubernetes apt repo and upgrade it to v1.37 in the recommended order.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {
@@ -26,7 +26,7 @@
         "text": "step5/text.md"
       },
       {
-        "title": "Step 6: Repeat on the worker",
+        "title": "Step 6: Repeat on the worker (two-node environments)",
         "text": "step6/text.md"
       }
     ],
