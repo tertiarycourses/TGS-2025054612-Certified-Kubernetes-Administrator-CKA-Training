@@ -101,7 +101,7 @@ Never guess these — they are in the static-pod manifest that defines etcd:
 ```bash
 sudo grep -E "data-dir|listen-client-urls|--cert-file|--key-file|trusted-ca-file" \
   /etc/kubernetes/manifests/etcd.yaml
-sudo grep -A3 "name: etcd-data" /etc/kubernetes/manifests/etcd.yaml
+sudo grep -n -B2 "name: etcd-data" /etc/kubernetes/manifests/etcd.yaml
 ```
 
 **Expected result:** client URL `https://127.0.0.1:2379`, server cert and key under
@@ -213,23 +213,12 @@ exists in etcd.
 
 ### Step 6 — Restore, and get it all back
 
-The control plane must not be running while etcd's data directory is replaced. Static pods
-are started by the kubelet from `/etc/kubernetes/manifests`, so moving the manifests aside
-stops them.
+The order below matters: the snapshot is restored into a new directory **first**, while
+the cluster is still running, because `snapshot restore` only writes files and needs no
+running etcd. The control plane is then stopped for the shortest possible time.
 
-**1. Stop the control plane:**
-
-```bash
-sudo mkdir -p /etc/kubernetes/manifests-stopped
-sudo mv /etc/kubernetes/manifests/*.yaml /etc/kubernetes/manifests-stopped/
-until ! sudo crictl ps 2>/dev/null | grep -q etcd; do sleep 3; done
-echo "control plane stopped"
-```
-
-`kubectl` stops answering now — expected, the apiserver is down.
-
-**2. Restore the snapshot into a NEW data directory.** Never restore over a directory that
-still has data; etcd refuses, and a half-replaced directory is worse than no backup:
+**1. Restore the snapshot into a NEW data directory.** Never restore over a directory that
+still holds data — etcd refuses, and a half-replaced directory is worse than no backup:
 
 ```bash
 if command -v etcdutl > /dev/null; then
@@ -240,7 +229,28 @@ fi
 sudo ls /var/lib/etcd-restore/member
 ```
 
-**Expected result:** a `member/` directory containing `snap` and `wal`.
+**Expected result:** `snap  wal`.
+
+> ### Do not continue until that directory exists
+> This is the step everything else depends on. If you skip it, the `hostPath` you set in
+> step 3 points at a directory that does not exist — and because the manifest says
+> `type: DirectoryOrCreate`, the kubelet **creates it empty**. etcd then starts as a brand
+> new, blank cluster: no namespaces, no workloads, and no RBAC, which shows up as
+> `Error from server (Forbidden): … User "kubernetes-admin" cannot …` on every command.
+> Nothing is lost if that happens — your snapshot is still on disk. Stop the control plane,
+> `sudo rm -rf /var/lib/etcd-restore`, run the restore above for real, and start again.
+
+**2. Stop the control plane.** Static pods are started by the kubelet from
+`/etc/kubernetes/manifests`, so moving the manifests aside stops them:
+
+```bash
+sudo mkdir -p /etc/kubernetes/manifests-stopped
+sudo mv /etc/kubernetes/manifests/*.yaml /etc/kubernetes/manifests-stopped/
+until ! sudo crictl ps 2>/dev/null | grep -q etcd; do sleep 3; done
+echo "control plane stopped"
+```
+
+`kubectl` stops answering now — expected, the apiserver is down.
 
 **3. Point etcd at the restored directory.** Only the node-side `hostPath` changes; the
 container still sees `/var/lib/etcd`:
@@ -248,10 +258,15 @@ container still sees `/var/lib/etcd`:
 ```bash
 sudo sed -i 's#path: /var/lib/etcd$#path: /var/lib/etcd-restore#' \
   /etc/kubernetes/manifests-stopped/etcd.yaml
-sudo grep -A3 "name: etcd-data" /etc/kubernetes/manifests-stopped/etcd.yaml
+sudo grep -n "path: /var/lib/etcd" /etc/kubernetes/manifests-stopped/etcd.yaml
 ```
 
-**Expected result:** the `hostPath` now reads `/var/lib/etcd-restore`.
+**Expected result:** one line, reading `path: /var/lib/etcd-restore`. If it still says
+`/var/lib/etcd`, the edit did not land and the restore will have no effect.
+
+> Grep for the `path:` line itself, not for `name: etcd-data` — in this manifest the path
+> sits *above* the volume name, so `grep -A3 "name: etcd-data"` would show you the wrong
+> lines and tell you nothing.
 
 **4. Start the control plane again and wait for the API:**
 
@@ -268,11 +283,12 @@ On a 1-CPU node this takes a minute or two while etcd replays and the apiserver 
 ```bash
 kubectl get ns demo-backup
 kubectl -n demo-backup get deploy,svc,cm
+kubectl -n demo-backup get pods
 ```
 
-**Expected result:** the namespace is back, with Deployment `web`, Service `web` and
-ConfigMap `app-config` — the exact state captured in Step 4. The cluster has been rewound
-to the moment of the snapshot.
+**Expected result:** the namespace is back with Deployment `web`, Service `web` and
+ConfigMap `app-config` — the exact state captured in Step 4 — and the pods are recreated by
+the Deployment. The cluster has been rewound to the moment of the snapshot.
 
 ---
 
@@ -296,7 +312,8 @@ to the moment of the snapshot.
 | `unknown command "restore"` | etcd 3.6 removed restore from `etcdctl`: use `etcdutl snapshot restore`. |
 | `data-dir "/var/lib/etcd-restore" exists` | Restore target must be new: `sudo rm -rf /var/lib/etcd-restore` and retry. |
 | `kubectl` still refused long after Step 6 | Check the static pods came back: `ls /etc/kubernetes/manifests`, then `sudo crictl ps -a \| grep etcd` and `sudo journalctl -u kubelet -n 50`. |
-| Objects still missing after restore | etcd is probably still on the old directory. Confirm the `hostPath` edit, then restart the pod by moving `etcd.yaml` out and back. |
+| `Forbidden: User "kubernetes-admin" cannot …` after the restore | etcd started on an **empty** data directory, so RBAC went with the rest of the data — the restore was skipped, or the `hostPath` points somewhere that did not exist and `DirectoryOrCreate` made it empty. Stop the control plane, `sudo rm -rf /var/lib/etcd-restore`, run the restore, confirm `member/` exists, then start again. |
+| Objects still missing after restore | etcd is probably still on the old directory. Check with `sudo grep -n "path: /var/lib/etcd" /etc/kubernetes/manifests/etcd.yaml`, then restart the pod by moving `etcd.yaml` out and back. |
 | `localhost:8080 ... refused` | No kubeconfig — copy `admin.conf` as shown at the top. |
 
 ## Exam tips
@@ -304,7 +321,8 @@ to the moment of the snapshot.
 - `snapshot save` needs `--endpoints`, `--cacert`, `--cert`, `--key`. Forgetting one is the
   most common lost mark.
 - Restore to a **new** `--data-dir`, then repoint the `hostPath`. Do not try to restore in
-  place.
+  place — and because restore only writes files, do it **before** you stop the control
+  plane, so the cluster is down for less time.
 - Moving manifests out of `/etc/kubernetes/manifests` is the fastest way to stop and start
   the control plane. Remember to move them **back**.
 - `ETCDCTL_API=3` is the default from etcd 3.4 onwards, but setting it explicitly costs

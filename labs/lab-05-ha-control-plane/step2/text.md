@@ -5,7 +5,7 @@ Read them from the static-pod manifest rather than guessing:
 ```bash
 sudo grep -E "data-dir|listen-client-urls|--cert-file|--key-file|trusted-ca-file" \
   /etc/kubernetes/manifests/etcd.yaml
-sudo grep -A3 "name: etcd-data" /etc/kubernetes/manifests/etcd.yaml
+sudo grep -n -B2 "name: etcd-data" /etc/kubernetes/manifests/etcd.yaml
 ```
 
 Client URL `https://127.0.0.1:2379`, certificates under `/etc/kubernetes/pki/etcd/`, and a
