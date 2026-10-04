@@ -1,8 +1,8 @@
 {
   "title": "Lab 7 — Customize Manifests with Kustomize",
-  "description": "Kustomize is the template-free overlay tool baked into kubectl; build a base nginx Deployment and two overlays (dev, prod) that change replica count, image tag, and namespace without copying YAML.",
+  "description": "Build one Kustomize base and dev/prod overlays that change namespace, replicas and image tag, then compare both live environments.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {
@@ -22,7 +22,7 @@
         "text": "step4/text.md"
       },
       {
-        "title": "Step 5: Use a strategic-merge patch",
+        "title": "Step 5: Swap in a strategic-merge patch",
         "text": "step5/text.md"
       }
     ],

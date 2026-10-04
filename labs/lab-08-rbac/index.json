@@ -1,8 +1,8 @@
 {
   "title": "Lab 8 — RBAC: Roles, RoleBindings, ServiceAccounts",
-  "description": "Create a ServiceAccount for a read-only viewer persona, define a namespaced Role allowing get/list/watch on Pods, bind it to the SA, and prove the SA can read but cannot write.",
+  "description": "Build a read-only ServiceAccount with a namespaced Role, verify it with impersonation and with the pod's own token (HTTP 200 vs 403), then add a cluster-scoped permission.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {
@@ -22,7 +22,7 @@
         "text": "step4/text.md"
       },
       {
-        "title": "Step 5: Test from inside a pod",
+        "title": "Step 5: Test from inside a pod, with the real token",
         "text": "step5/text.md"
       },
       {
@@ -30,7 +30,7 @@
         "text": "step6/text.md"
       },
       {
-        "title": "Step 7: Aggregated ClusterRoles (reference)",
+        "title": "Step 7: Aggregated ClusterRoles, and clean up",
         "text": "step7/text.md"
       }
     ],

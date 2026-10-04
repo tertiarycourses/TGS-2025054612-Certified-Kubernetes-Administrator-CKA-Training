@@ -2,10 +2,11 @@
 
 You have completed Lab 7 — Customize Manifests with Kustomize:
 
-✅ Created a base Deployment and Service with a `kustomization.yaml`
-✅ Built a `dev` overlay using a JSON6902 patch for replicas and image tag
-✅ Built a `prod` overlay with 4 replicas and a newer image tag
-✅ Rendered and applied both overlays to separate namespaces
-✅ Replaced the JSON6902 patch with a strategic-merge patch file
+✅ Built a base that renders on its own — no namespace, `replicas: 1`, `nginx:1.25`
+✅ Added dev (`web-dev`, 1 replica, `1.25`) and prod (`web-prod`, 4 replicas, `1.27`)
+   overlays from that one base
+✅ Rendered with `kubectl kustomize` before applying with `kubectl apply -k`
+✅ Proved both environments differ with a single `jsonpath` comparison
+✅ Swapped a JSON 6902 patch for a strategic-merge patch and saw `2/2`
 
 **Next:** Lab 8 — RBAC: Roles, RoleBindings, ServiceAccounts

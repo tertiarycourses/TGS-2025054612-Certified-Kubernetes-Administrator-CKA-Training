@@ -1,14 +1,16 @@
 # Lab 8 — RBAC: Roles, RoleBindings, ServiceAccounts
 
-In this lab you create a ServiceAccount for a "read-only viewer" persona, define a namespaced `Role` that allows only `get/list/watch` on Pods, bind the role to the SA, and prove that the SA can read but cannot write.
+You will build a read-only "viewer" identity — a ServiceAccount, a namespaced `Role` for
+`get/list/watch` on Pods, and the binding that joins them — then prove its limits by
+impersonation **and** from inside a pod using the ServiceAccount's own token, where RBAC
+appears as HTTP `200` and `403`.
 
-Use the **Kubernetes playground**: https://killercoda.com/playgrounds/scenario/kubernetes
+**Prerequisite:** a working cluster (`kubectl get nodes`).
 
 **What you will do:**
-- Create a namespace and a ServiceAccount for the viewer persona
-- Define a namespaced Role with `get`, `list`, `watch` verbs on Pods
-- Bind the Role to the ServiceAccount with a RoleBinding
-- Verify access with `kubectl auth can-i --as=`
-- Run a pod under the ServiceAccount and test read vs write permissions live
-- Create a ClusterRole and ClusterRoleBinding for cluster-scoped resources
-- Inspect aggregated built-in ClusterRoles
+- Create a ServiceAccount, a Role, and a RoleBinding
+- Check access with `kubectl auth can-i --as=…`, including a namespace where it is denied
+- Run a pod as that ServiceAccount (`kubectl run` has no `--serviceaccount` flag — use
+  `--overrides`) and call the API with its mounted token
+- Grant a cluster-scoped permission with a ClusterRole and watch `nodes` go 403 → 200
+- Inspect the aggregated `view` role and bind it instead of hand-writing rules

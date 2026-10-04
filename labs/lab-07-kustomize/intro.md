@@ -1,12 +1,14 @@
 # Lab 7 — Customize Manifests with Kustomize
 
-Kustomize is the template-free overlay tool baked into `kubectl` (`kubectl apply -k`). In this lab you build a base nginx Deployment and two overlays (`dev`, `prod`) that change the replica count, image tag, and namespace without copying YAML.
+Kustomize is the template-free overlay tool built into `kubectl`. You will build one base
+and two overlays — `dev` and `prod` — that change namespace, replica count and image tag
+without copying or templating any YAML.
 
-Use the **Kubernetes playground**: https://killercoda.com/playgrounds/scenario/kubernetes
+**Prerequisite:** a working cluster (`kubectl get nodes`).
 
 **What you will do:**
-- Create a base Deployment and Service with a `kustomization.yaml`
-- Create a `dev` overlay with a JSON6902 patch for replicas and image tag
-- Create a `prod` overlay with different replicas and image tag
-- Render with `kubectl kustomize` and apply both overlays to the cluster
-- Replace the JSON6902 patch with a strategic-merge patch
+- Write a base that renders on its own
+- Add a dev overlay with a JSON 6902 patch, and a prod overlay with different numbers
+- Render with `kubectl kustomize`, then apply with `kubectl apply -k`
+- Compare both live environments with one `jsonpath` query
+- Swap the JSON 6902 patch for a strategic-merge patch and watch the rollout

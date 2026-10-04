@@ -1,8 +1,8 @@
 {
   "title": "Lab 6 — Install Components with Helm",
-  "description": "Helm is the package manager for Kubernetes; install Helm, add a chart repository, deploy nginx via the Bitnami chart, override values, and roll back.",
+  "description": "Install Helm, deploy the podinfo chart, override values, inspect revisions and roll back, render with helm template, and diagnose a retired chart repository.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {
@@ -32,6 +32,10 @@
       {
         "title": "Step 7: Uninstall",
         "text": "step7/text.md"
+      },
+      {
+        "title": "Step 8: Diagnose a retired chart repository",
+        "text": "step8/text.md"
       }
     ],
     "intro": {
