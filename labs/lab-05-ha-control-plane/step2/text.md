@@ -1,40 +1,47 @@
-# Step 2 — Put a real load balancer in front of the apiserver
+# Step 2 — Find etcd's endpoint, certificates and data directory
 
-The apiserver already owns 6443 on this node, so HAProxy listens on **8443** and forwards
-to it. TCP passthrough, no TLS termination — the same data path as production.
-
-```bash
-sudo apt update && sudo apt install -y haproxy
-sudo tee /etc/haproxy/haproxy.cfg > /dev/null <<'EOF'
-global
-    daemon
-defaults
-    mode    tcp
-    timeout connect 5s
-    timeout client  30s
-    timeout server  30s
-
-frontend kube-apiserver
-    bind *:8443
-    default_backend kube-apiservers
-
-backend kube-apiservers
-    option tcp-check
-    balance roundrobin
-    server cp-1 127.0.0.1:6443 check
-    # Real HA clusters list the other control planes here as well.
-EOF
-sudo systemctl restart haproxy
-sudo systemctl is-active haproxy
-sudo ss -lntp | grep 8443
-```
-
-`bind *:6443` would fail here with `cannot bind socket`: that is the apiserver's port. The
-LB owns 6443 only when it runs on separate machines.
-
-Reach the API through the load balancer — your node's IP is already in the certificate:
+Read them from the static-pod manifest rather than guessing:
 
 ```bash
-IP=$(hostname -I | awk '{print $1}')
-kubectl --server=https://$IP:8443 get nodes
+sudo grep -E "data-dir|listen-client-urls|--cert-file|--key-file|trusted-ca-file" \
+  /etc/kubernetes/manifests/etcd.yaml
+sudo grep -A3 "name: etcd-data" /etc/kubernetes/manifests/etcd.yaml
 ```
+
+Client URL `https://127.0.0.1:2379`, certificates under `/etc/kubernetes/pki/etcd/`, and a
+`hostPath` of `/var/lib/etcd`.
+
+The restore runs on the host while etcd is stopped, so install the client there:
+
+```bash
+sudo apt-get update -qq && sudo apt-get install -y etcd-client
+etcdctl version
+```
+
+If that package is unavailable, or `etcdutl` is missing from it, take both binaries
+straight from an official etcd release:
+
+```bash
+ETCD_VER=v3.5.21
+curl -sL "https://github.com/etcd-io/etcd/releases/download/$ETCD_VER/etcd-$ETCD_VER-linux-amd64.tar.gz" \
+  -o /tmp/etcd.tar.gz
+sudo tar xzf /tmp/etcd.tar.gz -C /usr/local/bin --strip-components=1 \
+  "etcd-$ETCD_VER-linux-amd64/etcdctl" "etcd-$ETCD_VER-linux-amd64/etcdutl"
+etcdctl version && etcdutl version
+```
+
+```bash
+export ETCDCTL_API=3
+CA=/etc/kubernetes/pki/etcd/ca.crt
+CERT=/etc/kubernetes/pki/etcd/server.crt
+KEY=/etc/kubernetes/pki/etcd/server.key
+EP=https://127.0.0.1:2379
+```
+
+```bash
+sudo ETCDCTL_API=3 etcdctl --endpoints=$EP --cacert=$CA --cert=$CERT --key=$KEY \
+  endpoint health
+```
+
+`https://127.0.0.1:2379 is healthy`. A certificate error means wrong flags — the most
+common exam mistake.

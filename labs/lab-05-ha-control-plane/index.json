@@ -1,29 +1,33 @@
 {
-  "title": "Lab 5 — Highly-Available Control Plane",
-  "description": "Build the reproducible pieces of an HA control plane on one node: HAProxy in front of the apiserver, a --control-plane-endpoint bootstrap with --upload-certs, etcd membership and quorum.",
+  "title": "Lab 5 — HA Overview and etcd Backup/Restore",
+  "description": "Review HA topology and quorum, then back up etcd and restore it: create a Deployment, Service and ConfigMap, snapshot etcd, delete the namespace, and bring everything back.",
   "difficulty": "intermediate",
-  "time": "40",
+  "time": "45",
   "details": {
     "steps": [
       {
-        "title": "Step 1: The topology, and what you actually have",
+        "title": "Step 1: HA overview - topology, quorum, HA-readiness",
         "text": "step1/text.md"
       },
       {
-        "title": "Step 2: Put a real load balancer in front of the apiserver",
+        "title": "Step 2: Find etcd's endpoint, certificates and data directory",
         "text": "step2/text.md"
       },
       {
-        "title": "Step 3: Why the endpoint must be inside the certificate",
+        "title": "Step 3: Create the state you are going to lose",
         "text": "step3/text.md"
       },
       {
-        "title": "Step 4: Bootstrap the HA way, and join the worker through the LB",
+        "title": "Step 4: Take and verify the snapshot",
         "text": "step4/text.md"
       },
       {
-        "title": "Step 5: The control-plane join command, for real",
+        "title": "Step 5: Lose the data",
         "text": "step5/text.md"
+      },
+      {
+        "title": "Step 6: Restore, and get it all back",
+        "text": "step6/text.md"
       }
     ],
     "intro": {

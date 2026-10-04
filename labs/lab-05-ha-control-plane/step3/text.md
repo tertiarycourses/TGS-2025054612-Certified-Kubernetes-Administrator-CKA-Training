@@ -1,24 +1,12 @@
-# Step 3 — Why the endpoint must be inside the certificate
-
-A VIP has an address of its own. Give yourself a name for it and try:
+# Step 3 — Create the state you are going to lose
 
 ```bash
-IP=$(hostname -I | awk '{print $1}')
-echo "$IP k8s-vip" | sudo tee -a /etc/hosts
-kubectl --server=https://k8s-vip:8443 get nodes
+kubectl create namespace demo-backup
+kubectl -n demo-backup create deployment web --image=nginx:1.27-alpine --replicas=2
+kubectl -n demo-backup expose deployment web --port=80
+kubectl -n demo-backup create configmap app-config --from-literal=owner=mohan
+kubectl -n demo-backup get deploy,svc,cm
 ```
 
-This fails on purpose:
-
-```text
-x509: certificate is valid for kubernetes, kubernetes.default, …, 172.30.1.2, not k8s-vip
-```
-
-TLS rejected the name because it is not in the certificate's SANs. Confirm what is:
-
-```bash
-sudo openssl x509 -in /etc/kubernetes/pki/apiserver.crt -noout -text \
-  | grep -A1 "Subject Alternative Name"
-```
-
-No `k8s-vip`. That is precisely what `--control-plane-endpoint` adds — Step 4.
+Pods may stay `Pending` if this cluster has no CNI yet (Lab 3) — the restore is proven by
+the objects returning, not by pods running.

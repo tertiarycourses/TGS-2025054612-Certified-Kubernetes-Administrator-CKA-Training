@@ -37,7 +37,7 @@ A complete set of **31 step-by-step labs** aligned to the CNCF **CKA v1.35** exa
 | [02](labs/lab-02-kubeadm-bootstrap/) | Cluster Bootstrap | `kubeadm init`, kubeconfig, PKI, etcd, worker `join` |
 | [03](labs/lab-03-cni-calico/) | Calico CNI | tigera-operator, pod CIDR, cross-node pod ping |
 | [04](labs/lab-04-cluster-upgrade/) | Cluster Upgrade | `kubeadm upgrade`, drain/uncordon, `apt-mark hold` |
-| [05](labs/lab-05-ha-control-plane/) | HA Control Plane | HAProxy, Keepalived VIP, `--upload-certs`, etcd snapshot |
+| [05](labs/lab-05-ha-control-plane/) | HA Overview and etcd Backup/Restore | quorum, `--control-plane-endpoint`, `etcdctl snapshot save`/`restore` |
 | [06](labs/lab-06-helm/) | Helm | `helm repo add`, `install`, `upgrade`, `rollback`, `--set`, `values.yaml` |
 | [07](labs/lab-07-kustomize/) | Kustomize | base + overlays, `namePrefix`, `images`, `patches`, `kubectl apply -k` |
 | [08](labs/lab-08-rbac/) | RBAC | Role, ClusterRole, RoleBinding, ServiceAccount, `kubectl auth can-i` |

@@ -1,16 +1,15 @@
-# Lab 5 — Highly-Available Control Plane
+# Lab 5 — HA Control Plane Overview and etcd Backup/Restore
 
-A real HA control plane needs three machines with 2 CPUs each, and this environment gives
-you two 1-CPU nodes — so instead of pretending, you build every piece of HA that *is*
-reproducible on one control plane, and check each result.
+A real HA control plane needs three machines with 2 CPUs each, which this environment
+cannot give you — so HA is covered as a **high-level overview** (topology, quorum, and the
+bootstrap flags that make a cluster HA-ready), and the hands-on work is **etcd backup and
+restore**: the task a CKA is actually asked to perform on a single control plane.
 
-**Prerequisite:** a running cluster (Lab 2). Verify with `kubectl get nodes`.
+**Prerequisite:** a working cluster. Check with `kubectl get nodes`.
 
 **What you will do:**
-- Measure your cluster: control-plane count, missing `controlPlaneEndpoint`, etcd members, quorum maths
-- Run HAProxy on port 8443 in front of the apiserver and reach the API through it
-- See the `x509 … not k8s-vip` error that explains why the endpoint must be in the certificate
-- Rebuild with `--control-plane-endpoint` + `--upload-certs` and join the worker through the load balancer
-- Generate a real control-plane join command with a certificate key
-
-> Step 4 deliberately resets the cluster from Lab 2.
+- Review the stacked-etcd topology and the quorum table, and check whether your cluster is HA-ready
+- Read etcd's endpoint, certificates and data directory out of its static-pod manifest
+- Create a Deployment, Service and ConfigMap worth protecting
+- Take a snapshot and verify it with `snapshot status`
+- Delete the namespace, then restore etcd and watch every object come back

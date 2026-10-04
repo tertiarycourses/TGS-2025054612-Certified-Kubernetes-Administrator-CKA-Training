@@ -24,7 +24,7 @@ complete -o default -F __start_kubectl k
 | [Lab 02](lab-02-kubeadm-bootstrap/) | Bootstrap a Cluster with kubeadm | `kubeadm init`, kubeconfig, PKI, worker join |
 | [Lab 03](lab-03-cni-calico/) | Install Calico CNI | tigera-operator, pod CIDR, cross-node ping |
 | [Lab 04](lab-04-cluster-upgrade/) | Cluster Upgrade: v1.34 → v1.35 | `kubeadm upgrade`, drain, uncordon, package hold |
-| [Lab 05](lab-05-ha-control-plane/) | HA Control Plane: HAProxy + Keepalived | VIP, `--upload-certs`, stacked etcd, etcd snapshot |
+| [Lab 05](lab-05-ha-control-plane/) | HA Overview and etcd Backup/Restore | quorum, `--control-plane-endpoint`, `etcdctl snapshot save`/`restore` |
 | [Lab 06](lab-06-helm/) | Helm: Install, Upgrade, Rollback | `helm repo add`, `--set`, `values.yaml`, `helm template` |
 | [Lab 07](lab-07-kustomize/) | Kustomize: Base + Overlays | `namePrefix`, `images`, `patches`, `kubectl apply -k` |
 | [Lab 08](lab-08-rbac/) | RBAC: Roles, RoleBindings, ServiceAccounts | `kubectl auth can-i`, ClusterRole, namespace scope |
