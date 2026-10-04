@@ -37,6 +37,12 @@ sudo systemctl restart containerd
 - On a node that was never initialised, these commands are harmless — `reset` just reports
   there is nothing to do.
 
+> **The red `StopPodSandbox ... DeadlineExceeded` lines are expected.** `reset` asks
+> containerd to stop the old pods and gives up after a few tries when a sandbox is slow to
+> die on a 1-CPU node (`Failed to remove containers`). It still deletes `/var/lib/etcd`,
+> `/etc/kubernetes` and the kubelet state, and the `systemctl restart containerd` above
+> clears the stuck sandbox. The two checks below are what decide whether reset worked.
+
 Confirm the control plane is gone before continuing:
 
 ```bash
