@@ -1,15 +1,22 @@
-# Step 5 — Verify quorum
+# Step 5 — The control-plane join command, for real
 
-On any control plane:
+A second control plane needs its own VM with 2 CPUs, so you cannot run this here — but
+generating the command is the exam skill. The key from `--upload-certs` expires after two
+hours; regenerate it any time:
 
 ```bash
-kubectl get pods -n kube-system -l component=etcd
-kubectl -n kube-system exec etcd-cp-1 -- etcdctl \
-  --endpoints=https://127.0.0.1:2379 \
-  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-  --cert=/etc/kubernetes/pki/etcd/server.crt \
-  --key=/etc/kubernetes/pki/etcd/server.key \
-  member list
+sudo kubeadm init phase upload-certs --upload-certs
+kubeadm token create --print-join-command
 ```
 
-You should see three voting etcd members. Losing one keeps the cluster writable; losing two breaks quorum.
+Combine both pieces:
+
+```bash
+sudo kubeadm join k8s-vip:8443 --token <token> \
+  --discovery-token-ca-cert-hash sha256:<hash> \
+  --control-plane --certificate-key <key-from-upload-certs>
+```
+
+That node starts its own apiserver, registers a second etcd member, and is added to the
+HAProxy backend list. Three control planes means three voting members — and by the quorum
+table in Step 1, one can fail.
