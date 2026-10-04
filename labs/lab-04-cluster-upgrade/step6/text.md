@@ -3,11 +3,14 @@
 node01 has its own apt config, so repoint its repo too. On **node01**:
 
 ```bash
-TARGET_MINOR=v1.35
-sudo sed -i "s|core:/stable:/v1\.[0-9]*|core:/stable:/${TARGET_MINOR}|" \
-  /etc/apt/sources.list.d/kubernetes.list
+TARGET_MINOR=v1.37          # one minor above what Step 1 printed
+LIST=/etc/apt/sources.list.d/kubernetes.list
+KEYRING=$(grep -oE '/etc/apt/keyrings/[^] ]+\.gpg' $LIST)
+echo "list=$LIST keyring=$KEYRING target=$TARGET_MINOR"
+
+sudo sed -i "s|core:/stable:/v1\.[0-9]*|core:/stable:/${TARGET_MINOR}|" $LIST
 curl -fsSL https://pkgs.k8s.io/core:/stable:/${TARGET_MINOR}/deb/Release.key \
-  | sudo gpg --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  | sudo gpg --yes --dearmor -o "$KEYRING"
 sudo apt update
 PKG=$(apt-cache madison kubeadm | awk '{print $3}' | head -1)
 sudo apt-mark unhold kubeadm && sudo apt install -y kubeadm=$PKG && sudo apt-mark hold kubeadm

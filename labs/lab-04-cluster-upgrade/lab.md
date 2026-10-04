@@ -45,17 +45,29 @@ Note two things before you touch anything:
 ## Step 2 — Point apt at the target minor, then upgrade the kubeadm binary
 
 Set the target to **exactly one minor above** what Step 1 printed — kubeadm supports one
-minor step at a time (v1.34 to v1.35, never v1.34 straight to v1.36):
+minor step at a time (v1.36 to v1.37, never v1.35 straight to v1.37). The example below
+uses `v1.37`, the newest published minor and the one this playground already runs; on a
+v1.36 cluster you would set `v1.37`, and in this lab's KillerCoda scenario (a v1.34
+cluster) you would set `v1.35`:
 
 ```bash
-TARGET_MINOR=v1.35
-sudo sed -i "s|core:/stable:/v1\.[0-9]*|core:/stable:/${TARGET_MINOR}|" \
-  /etc/apt/sources.list.d/kubernetes.list
+TARGET_MINOR=v1.37          # one minor above what Step 1 printed
+LIST=/etc/apt/sources.list.d/kubernetes.list
+KEYRING=$(grep -oE '/etc/apt/keyrings/[^] ]+\.gpg' $LIST)
+echo "list=$LIST keyring=$KEYRING target=$TARGET_MINOR"
+
+sudo sed -i "s|core:/stable:/v1\.[0-9]*|core:/stable:/${TARGET_MINOR}|" $LIST
 curl -fsSL https://pkgs.k8s.io/core:/stable:/${TARGET_MINOR}/deb/Release.key \
-  | sudo gpg --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  | sudo gpg --yes --dearmor -o "$KEYRING"
 sudo apt update
 apt-cache madison kubeadm | head -3
 ```
+
+> **Why `$KEYRING` instead of a fixed filename?** The list line names its own keyring in
+> `signed-by=`, and the name includes the minor — on this playground it is
+> `/etc/apt/keyrings/kubernetes-1-37-apt-keyring.gpg`. Writing the key to any other file
+> leaves the repo unverifiable and `apt update` fails, so read the path out of the list
+> file rather than assuming it.
 
 `apt-cache madison` lists the exact package strings that minor publishes, newest first —
 for example `1.35.1-1.1`. Never guess this value; read it. Capture it, then install:
@@ -121,11 +133,14 @@ Lost `$PKG` (new shell)? Re-read it with
 node01 has its own apt config, so repoint its repo too. On **node01**:
 
 ```bash
-TARGET_MINOR=v1.35
-sudo sed -i "s|core:/stable:/v1\.[0-9]*|core:/stable:/${TARGET_MINOR}|" \
-  /etc/apt/sources.list.d/kubernetes.list
+TARGET_MINOR=v1.37          # one minor above what Step 1 printed
+LIST=/etc/apt/sources.list.d/kubernetes.list
+KEYRING=$(grep -oE '/etc/apt/keyrings/[^] ]+\.gpg' $LIST)
+echo "list=$LIST keyring=$KEYRING target=$TARGET_MINOR"
+
+sudo sed -i "s|core:/stable:/v1\.[0-9]*|core:/stable:/${TARGET_MINOR}|" $LIST
 curl -fsSL https://pkgs.k8s.io/core:/stable:/${TARGET_MINOR}/deb/Release.key \
-  | sudo gpg --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  | sudo gpg --yes --dearmor -o "$KEYRING"
 sudo apt update
 PKG=$(apt-cache madison kubeadm | awk '{print $3}' | head -1)
 sudo apt-mark unhold kubeadm && sudo apt install -y kubeadm=$PKG && sudo apt-mark hold kubeadm
