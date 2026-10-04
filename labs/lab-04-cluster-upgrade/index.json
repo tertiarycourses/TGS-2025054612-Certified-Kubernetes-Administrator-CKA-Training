@@ -1,16 +1,16 @@
 {
   "title": "Lab 4 — Cluster Upgrade with kubeadm",
-  "description": "Upgrade a Kubernetes cluster from v1.34 to v1.35 using kubeadm, following the recommended order: control plane first, then workers.",
+  "description": "Upgrade a kubeadm cluster one minor version at a time, repointing the Kubernetes apt repo and reading the exact package version instead of hard-coding it.",
   "difficulty": "intermediate",
   "time": "30",
   "details": {
     "steps": [
       {
-        "title": "Step 1: Check current versions",
+        "title": "Step 1: Check what you are actually running",
         "text": "step1/text.md"
       },
       {
-        "title": "Step 2: Upgrade the kubeadm binary on the control plane",
+        "title": "Step 2: Point apt at the target minor, then upgrade kubeadm",
         "text": "step2/text.md"
       },
       {
