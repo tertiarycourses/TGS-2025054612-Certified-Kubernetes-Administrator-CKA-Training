@@ -2,18 +2,46 @@
   "title": "Lab 1 — kubeadm Prerequisites and Container Runtime",
   "description": "Prepare an Ubuntu node for Kubernetes: kernel modules, sysctls, containerd, kubeadm, kubelet, kubectl.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
-      {"title": "Step 1: Load kernel modules", "text": "step1/text.md"},
-      {"title": "Step 2: Set required sysctls", "text": "step2/text.md"},
-      {"title": "Step 3: Disable swap", "text": "step3/text.md"},
-      {"title": "Step 4: Install containerd", "text": "step4/text.md"},
-      {"title": "Step 5: Install kubeadm, kubelet, kubectl", "text": "step5/text.md"},
-      {"title": "Step 6: Verify", "text": "step6/text.md"}
+      {
+        "title": "Step 0: Check what the playground already gives you",
+        "text": "step1/text.md"
+      },
+      {
+        "title": "Step 1: Load kernel modules",
+        "text": "step2/text.md"
+      },
+      {
+        "title": "Step 2: Set required sysctls",
+        "text": "step3/text.md"
+      },
+      {
+        "title": "Step 3: Disable swap",
+        "text": "step4/text.md"
+      },
+      {
+        "title": "Step 4: Install containerd",
+        "text": "step5/text.md"
+      },
+      {
+        "title": "Step 5: Install kubeadm, kubelet, kubectl",
+        "text": "step6/text.md"
+      },
+      {
+        "title": "Step 6: Verify",
+        "text": "step7/text.md"
+      }
     ],
-    "intro": {"text": "intro.md"},
-    "finish": {"text": "finish.md"}
+    "intro": {
+      "text": "intro.md"
+    },
+    "finish": {
+      "text": "finish.md"
+    }
   },
-  "backend": {"imageid": "ubuntu"}
+  "backend": {
+    "imageid": "ubuntu"
+  }
 }

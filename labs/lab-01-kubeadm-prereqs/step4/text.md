@@ -10,11 +10,15 @@ sudo systemctl restart containerd
 sudo systemctl enable containerd
 ```
 
-`SystemdCgroup = true` aligns containerd's cgroup driver with the kubelet default — mismatched drivers are the #1 cause of "node NotReady" in fresh clusters.
+**Expected result:** containerd is `active (running)` and the setting took:
 
-Verify:
 ```bash
-sudo systemctl status containerd --no-pager | head -5
+sudo grep SystemdCgroup /etc/containerd/config.toml
+systemctl is-active containerd
 ```
 
-You should see `active (running)`.
+**Expected result:** `SystemdCgroup = true` and `active`.
+
+`SystemdCgroup = true` aligns containerd's cgroup driver with the kubelet default —
+mismatched drivers are the number one cause of "node NotReady" in fresh clusters, and you
+will break it deliberately in Lab 27 to see the symptom.

@@ -7,4 +7,10 @@ kubectl get nodes -o wide
 kubectl get pods -n kube-system
 ```
 
-You should see two nodes (both `NotReady`) and the static control-plane pods running: `kube-apiserver`, `kube-controller-manager`, `kube-scheduler`, `etcd`, plus `kube-proxy` and `coredns`. The CoreDNS pods will stay `Pending` until a CNI is up.
+**Expected result:** two nodes, both `NotReady`, and in `kube-system`:
+`kube-apiserver`, `kube-controller-manager`, `kube-scheduler` and `etcd` all `Running`,
+`kube-proxy` on both nodes, and **CoreDNS `Pending`**.
+
+CoreDNS is the tell-tale: it needs a pod IP, and no CNI means no pod network, so it cannot
+start. Everything else in the control plane runs with `hostNetwork: true` and does not
+care. Fix both by installing a CNI in Lab 3.

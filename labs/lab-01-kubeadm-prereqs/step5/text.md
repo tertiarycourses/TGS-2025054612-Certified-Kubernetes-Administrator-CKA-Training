@@ -12,4 +12,8 @@ sudo apt install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
-`apt-mark hold` pins the versions so a stray `apt upgrade` cannot break your cluster mid-term.
+**Expected result:** the three packages install and `apt-mark` reports
+`kubelet set on hold`, `kubeadm set on hold`, `kubectl set on hold`.
+
+`apt-mark hold` pins the versions so a stray `apt upgrade` cannot break your cluster
+mid-term — and it is why Lab 4's upgrade starts with `apt-mark unhold`.

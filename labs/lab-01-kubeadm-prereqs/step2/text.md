@@ -9,11 +9,12 @@ EOF
 sudo sysctl --system
 ```
 
-`ip_forward=1` is mandatory: pods on different nodes route through the host.
+**Expected result:** `sysctl --system` prints every file it reads, ending with your three
+settings. Verify the live values:
 
-Verify:
 ```bash
-sysctl net.ipv4.ip_forward
+sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables
 ```
 
-You should see `net.ipv4.ip_forward = 1`.
+**Expected result:** both `= 1`. `ip_forward=1` is mandatory: pods on different nodes route
+through the host, and with forwarding off cross-node traffic is silently dropped.

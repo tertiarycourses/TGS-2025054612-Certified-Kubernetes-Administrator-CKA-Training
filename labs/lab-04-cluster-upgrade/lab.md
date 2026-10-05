@@ -40,6 +40,9 @@ kubelet --version
 cat /etc/apt/sources.list.d/kubernetes.list
 ```
 
+**Expected result:** both nodes `Ready` on the same version, `kubeadm version -o short`
+and `kubelet --version` agreeing, and a sources list ending in `core:/stable:/v1.NN/deb`.
+
 Note two things before you touch anything:
 
 - **The Kubernetes apt repo is pinned to one minor version.** The URL ends in
@@ -111,8 +114,11 @@ sudo kubeadm upgrade plan
 sudo kubeadm upgrade apply $(kubeadm version -o short) -y
 ```
 
-`upgrade plan` prints a table of what each component would move to, and refuses if the
-jump is unsupported. `upgrade apply` then replaces the static pods in
+**Expected result:** `upgrade plan` prints a table of current versus target version for
+each component, and `upgrade apply` ends with
+`SUCCESS! Your cluster was upgraded to "vX.Y.Z". Enjoy!`.
+
+`upgrade plan` refuses an unsupported jump before anything changes. `upgrade apply` then replaces the static pods in
 `/etc/kubernetes/manifests/` one at a time, health-checking between each. On a 1-CPU
 playground node this takes several minutes; slow `[upgrade/health]` waits are normal.
 
@@ -123,6 +129,9 @@ playground node this takes several minutes; slow `[upgrade/health]` waits are no
 ```bash
 kubectl drain controlplane --ignore-daemonsets
 ```
+
+**Expected result:** `node/controlplane cordoned`, then `node/controlplane drained`, and
+`kubectl get nodes` shows `Ready,SchedulingDisabled`.
 
 Drain evicts regular pods so the kubelet restart does not disrupt running workloads.
 `--ignore-daemonsets` is required because DaemonSet pods (kube-proxy, the CNI) are
@@ -140,6 +149,16 @@ sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 kubectl uncordon controlplane
 ```
+
+**Expected result:** the packages install, the kubelet restarts, and
+`node/controlplane uncordoned`. Confirm the node now reports the new version:
+
+```bash
+kubectl get nodes
+```
+
+**Expected result:** the control plane's `VERSION` column shows the version you upgraded
+to — the first visible proof the upgrade worked.
 
 Lost `$PKG` (new shell)? Re-read it with
 `PKG=$(apt-cache madison kubeadm | awk '{print $3}' | head -1)`.
@@ -332,6 +351,30 @@ Use Option A for that.
 | `--dry-run` finished but `kubectl get nodes` shows the old version | Correct: a dry run writes nothing. Use Option A (the scenario's v1.36 cluster) to see the version change. |
 | `upgrade apply` refuses the version jump | You skipped a minor. Upgrade one minor at a time. |
 | Node stays `SchedulingDisabled` after the upgrade | You drained it and never uncordoned it: `kubectl uncordon <node>`. |
+
+---
+
+## Verification
+
+| Check | Expected |
+|---|---|
+| Step 1 — starting state | both nodes `Ready`, versions agreeing, repo pinned to one minor |
+| Step 2 — repo + binary | `apt-cache madison` lists the target; `kubeadm version` shows it |
+| Step 3 — plan and apply | `SUCCESS! Your cluster was upgraded` |
+| Step 4 — drain | `Ready,SchedulingDisabled` |
+| Step 5 — kubelet | node `VERSION` shows the new version after uncordon |
+| Step 6 — worker | both nodes on the new version |
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `E: Version '…' for 'kubeadm' was not found` | The apt repo still points at another minor. Re-run Step 2's `sed` and `apt update`. |
+| `apt update` fails to verify the repo | The key went to the wrong file — Step 2 reads the keyring path out of `signed-by=`. |
+| `upgrade plan` says you are on the latest version | Nothing to upgrade here — see **Where to do a real upgrade**. |
+| `upgrade apply` refuses the version jump | You skipped a minor; upgrade one at a time. |
+| Node still shows the old version after Step 5 | The kubelet package was not upgraded or not restarted: `sudo systemctl restart kubelet`. |
+| Node left `SchedulingDisabled` | You drained and never uncordoned: `kubectl uncordon <node>`. |
 
 ---
 

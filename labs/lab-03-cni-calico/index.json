@@ -1,18 +1,39 @@
 {
   "title": "Lab 3 — Install a CNI Plugin (Calico)",
-  "description": "A fresh kubeadm cluster has no pod network; install Calico, watch nodes flip to Ready, and verify cross-node pod connectivity.",
+  "description": "Install Calico from the direct manifest after checking no other CNI is present, watch nodes flip to Ready and CoreDNS start, then prove cross-node pod connectivity.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
-      {"title": "Step 1: Apply the Calico manifest", "text": "step1/text.md"},
-      {"title": "Step 2: Watch pods come up", "text": "step2/text.md"},
-      {"title": "Step 3: Verify pod networking across nodes", "text": "step3/text.md"},
-      {"title": "Step 4: Inspect the CNI configuration", "text": "step4/text.md"},
-      {"title": "Step 5: Clean up the test pods", "text": "step5/text.md"}
+      {
+        "title": "Step 1: Check for an existing CNI, then apply Calico",
+        "text": "step1/text.md"
+      },
+      {
+        "title": "Step 2: Watch pods come up",
+        "text": "step2/text.md"
+      },
+      {
+        "title": "Step 3: Verify pod networking across nodes",
+        "text": "step3/text.md"
+      },
+      {
+        "title": "Step 4: Inspect the CNI configuration",
+        "text": "step4/text.md"
+      },
+      {
+        "title": "Step 5: Clean up the test pods",
+        "text": "step5/text.md"
+      }
     ],
-    "intro": {"text": "intro.md"},
-    "finish": {"text": "finish.md"}
+    "intro": {
+      "text": "intro.md"
+    },
+    "finish": {
+      "text": "finish.md"
+    }
   },
-  "backend": {"imageid": "ubuntu"}
+  "backend": {
+    "imageid": "ubuntu"
+  }
 }

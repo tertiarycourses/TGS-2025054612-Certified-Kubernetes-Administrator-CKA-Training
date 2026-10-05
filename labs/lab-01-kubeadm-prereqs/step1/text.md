@@ -11,11 +11,13 @@ sudo modprobe overlay
 sudo modprobe br_netfilter
 ```
 
-`overlay` powers the containerd snapshotter; `br_netfilter` lets iptables see bridged traffic so kube-proxy can NAT it.
+**Expected result:** the file contents are echoed back, and both `modprobe` commands
+return silently. Confirm they are loaded:
 
-Verify the modules are loaded:
 ```bash
-lsmod | grep -E 'overlay|br_netfilter'
+lsmod | grep -E "^overlay|^br_netfilter"
 ```
 
-You should see both modules listed.
+**Expected result:** both modules listed. `overlay` powers the containerd snapshotter;
+`br_netfilter` lets iptables see bridged traffic so kube-proxy can NAT it. The file in
+`/etc/modules-load.d/` makes this survive a reboot — the `modprobe` only affects now.

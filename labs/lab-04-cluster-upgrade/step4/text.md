@@ -4,4 +4,9 @@
 kubectl drain controlplane --ignore-daemonsets
 ```
 
-Drain evicts regular pods so the kubelet restart doesn't disrupt running workloads.
+**Expected result:** `node/controlplane cordoned`, then `node/controlplane drained`, and
+`kubectl get nodes` shows `Ready,SchedulingDisabled`.
+
+Drain evicts regular pods so the kubelet restart does not disrupt running workloads.
+`--ignore-daemonsets` is required because DaemonSet pods (kube-proxy, the CNI) are
+recreated on the node immediately and would otherwise block the drain.

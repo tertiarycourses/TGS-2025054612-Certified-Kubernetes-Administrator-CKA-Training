@@ -2,17 +2,42 @@
   "title": "Lab 2 — Bootstrap a Cluster with kubeadm",
   "description": "Turn two prepared nodes into a working Kubernetes cluster using kubeadm init and a bootstrap token join.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
-      {"title": "Step 1: Initialize the control plane", "text": "step1/text.md"},
-      {"title": "Step 2: Set up your kubeconfig", "text": "step2/text.md"},
-      {"title": "Step 3: Join the worker", "text": "step3/text.md"},
-      {"title": "Step 4: Inspect the new cluster", "text": "step4/text.md"},
-      {"title": "Step 5: Explore what kubeadm built", "text": "step5/text.md"}
+      {
+        "title": "Step 0: Reset the cluster the playground pre-built",
+        "text": "step1/text.md"
+      },
+      {
+        "title": "Step 1: Initialize the control plane",
+        "text": "step2/text.md"
+      },
+      {
+        "title": "Step 2: Set up your kubeconfig",
+        "text": "step3/text.md"
+      },
+      {
+        "title": "Step 3: Join the worker",
+        "text": "step4/text.md"
+      },
+      {
+        "title": "Step 4: Inspect the new cluster",
+        "text": "step5/text.md"
+      },
+      {
+        "title": "Step 5: Explore what kubeadm built",
+        "text": "step6/text.md"
+      }
     ],
-    "intro": {"text": "intro.md"},
-    "finish": {"text": "finish.md"}
+    "intro": {
+      "text": "intro.md"
+    },
+    "finish": {
+      "text": "finish.md"
+    }
   },
-  "backend": {"imageid": "ubuntu"}
+  "backend": {
+    "imageid": "ubuntu"
+  }
 }

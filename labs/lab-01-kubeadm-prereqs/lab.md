@@ -58,7 +58,16 @@ sudo modprobe overlay
 sudo modprobe br_netfilter
 ```
 
-`overlay` powers the containerd snapshotter; `br_netfilter` lets iptables see bridged traffic so kube-proxy can NAT it.
+**Expected result:** the file contents are echoed back, and both `modprobe` commands
+return silently. Confirm they are loaded:
+
+```bash
+lsmod | grep -E "^overlay|^br_netfilter"
+```
+
+**Expected result:** both modules listed. `overlay` powers the containerd snapshotter;
+`br_netfilter` lets iptables see bridged traffic so kube-proxy can NAT it. The file in
+`/etc/modules-load.d/` makes this survive a reboot — the `modprobe` only affects now.
 
 ---
 
@@ -73,7 +82,15 @@ EOF
 sudo sysctl --system
 ```
 
-`ip_forward=1` is mandatory: pods on different nodes route through the host.
+**Expected result:** `sysctl --system` prints every file it reads, ending with your three
+settings. Verify the live values:
+
+```bash
+sysctl net.ipv4.ip_forward net.bridge.bridge-nf-call-iptables
+```
+
+**Expected result:** both `= 1`. `ip_forward=1` is mandatory: pods on different nodes route
+through the host, and with forwarding off cross-node traffic is silently dropped.
 
 ---
 
@@ -84,7 +101,12 @@ sudo sysctl --system
 ```bash
 sudo swapoff -a
 sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+free -h | grep -i swap
 ```
+
+**Expected result:** the swap line reads `0B` total. `swapoff` handles the running system
+and the `fstab` edit stops it coming back after a reboot — the kubelet refuses to start
+with swap on unless you explicitly opt in.
 
 ---
 
@@ -100,7 +122,18 @@ sudo systemctl restart containerd
 sudo systemctl enable containerd
 ```
 
-`SystemdCgroup = true` aligns containerd's cgroup driver with the kubelet default — mismatched drivers are the #1 cause of "node NotReady" in fresh clusters.
+**Expected result:** containerd is `active (running)` and the setting took:
+
+```bash
+sudo grep SystemdCgroup /etc/containerd/config.toml
+systemctl is-active containerd
+```
+
+**Expected result:** `SystemdCgroup = true` and `active`.
+
+`SystemdCgroup = true` aligns containerd's cgroup driver with the kubelet default —
+mismatched drivers are the number one cause of "node NotReady" in fresh clusters, and you
+will break it deliberately in Lab 27 to see the symptom.
 
 ---
 
@@ -118,7 +151,11 @@ sudo apt install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
-`apt-mark hold` pins the versions so a stray `apt upgrade` cannot break your cluster mid-term.
+**Expected result:** the three packages install and `apt-mark` reports
+`kubelet set on hold`, `kubeadm set on hold`, `kubectl set on hold`.
+
+`apt-mark hold` pins the versions so a stray `apt upgrade` cannot break your cluster
+mid-term — and it is why Lab 4's upgrade starts with `apt-mark unhold`.
 
 ---
 
@@ -136,3 +173,28 @@ You should see the `kubeadm` version you noted in Step 0 (for example `v1.37.1`)
 ---
 
 > ✅ **Test it:** Both tabs show `kubeadm version` returning the version you noted in Step 0, `containerd` is active, and `kubectl version --client` works — the nodes are ready for `kubeadm init` in Lab 2.
+
+---
+
+## Verification
+
+| Check | Expected |
+|---|---|
+| Step 0 — what you already have | a `kubeadm` version and `nproc` noted; whether a cluster is already running |
+| Step 1 — modules | `overlay` and `br_netfilter` in `lsmod` |
+| Step 2 — sysctls | `net.ipv4.ip_forward = 1`, `bridge-nf-call-iptables = 1` |
+| Step 3 — swap | `free -h` shows `0B` swap |
+| Step 4 — containerd | `active`, with `SystemdCgroup = true` |
+| Step 5 — binaries | all three packages installed and held |
+| Step 6 — verify | `kubeadm version` matches Step 0, containerd active, crictl answers |
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `modprobe: FATAL: Module not found` | An unusual kernel without the module built in. Check `uname -r` and the distro's `linux-modules-extra` package. |
+| `sysctl: cannot stat /proc/sys/net/bridge/...` | `br_netfilter` is not loaded yet — run Step 1 first, then re-run `sysctl --system`. |
+| kubelet refuses to start, mentioning swap | `sudo swapoff -a`, and check `/etc/fstab` has the swap line commented. |
+| `apt install containerd` fails on an internal network | The playground has internet; a locked-down VM needs a mirror or a pre-pulled package. |
+| `apt` cannot find kubelet/kubeadm | The `pkgs.k8s.io` repo line or its keyring is wrong — re-run Step 5 and check `/etc/apt/sources.list.d/kubernetes.list`. |
+| Versions differ from Step 0's note | You installed a different minor over a running cluster. Do not — see Step 0's version note. |

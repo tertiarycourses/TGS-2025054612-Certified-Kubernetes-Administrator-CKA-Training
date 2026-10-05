@@ -9,5 +9,15 @@ sudo systemctl restart kubelet
 kubectl uncordon controlplane
 ```
 
-New shell, so `$PKG` is empty? Re-read it:
-`PKG=$(apt-cache madison kubeadm | awk '{print $3}' | head -1)`
+**Expected result:** the packages install, the kubelet restarts, and
+`node/controlplane uncordoned`. Confirm the node now reports the new version:
+
+```bash
+kubectl get nodes
+```
+
+**Expected result:** the control plane's `VERSION` column shows the version you upgraded
+to — the first visible proof the upgrade worked.
+
+Lost `$PKG` (new shell)? Re-read it with
+`PKG=$(apt-cache madison kubeadm | awk '{print $3}' | head -1)`.
