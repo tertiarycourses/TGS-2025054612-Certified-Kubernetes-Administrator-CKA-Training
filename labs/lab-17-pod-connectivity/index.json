@@ -1,6 +1,6 @@
 {
   "title": "Lab 17 — Pod-to-Pod Connectivity",
-  "description": "Every pod gets a routable IP and can reach every other pod without NAT.",
+  "description": "Prove the flat pod network with netshoot: ping and curl by pod IP, confirm there is no NAT from the server's own logs, then switch to Service DNS.",
   "difficulty": "intermediate",
   "time": "30",
   "details": {

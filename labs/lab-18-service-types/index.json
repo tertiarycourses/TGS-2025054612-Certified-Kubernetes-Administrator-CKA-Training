@@ -1,8 +1,8 @@
 {
   "title": "Lab 18 — Service Types: ClusterIP, NodePort, LoadBalancer",
-  "description": "In this lab you expose the same Deployment with each of the three primary Service types and inspect the resulting Endpoints.",
+  "description": "Expose one Deployment as ClusterIP, NodePort and LoadBalancer, see why bare metal needs MetalLB with a pool from the node's own subnet, and read EndpointSlices.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {

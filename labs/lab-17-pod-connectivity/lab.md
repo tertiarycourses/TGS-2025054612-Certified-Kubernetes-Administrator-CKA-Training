@@ -14,7 +14,12 @@ kubectl wait --for=condition=Ready pod/client pod/server --timeout=60s
 kubectl get pods -o wide
 ```
 
-Note each pod's IP and the node it landed on.
+**Expected result:** both pods `Running`, each with an IP from the cluster's **pod CIDR**
+(`192.168.x.x` if you followed Lab 2, `10.244.x.x` with Flannel) — not from the node's
+subnet. Note each pod's IP and node.
+
+> On this playground the control plane is tainted, so both pods usually land on `node01`.
+> Step 6 is more interesting when they are split across nodes.
 
 ---
 
@@ -25,7 +30,19 @@ SERVER_IP=$(kubectl get pod server -o jsonpath='{.status.podIP}')
 kubectl exec client -- ping -c 3 $SERVER_IP
 ```
 
-No SNAT, no port mapping — the pod sees its own IP.
+**Expected result:** `3 packets transmitted, 3 received, 0% packet loss`.
+
+Now prove there is no NAT — ask the server what address the request came from:
+
+```bash
+kubectl exec client -- curl -s $SERVER_IP > /dev/null
+kubectl logs server | tail -2
+kubectl get pod client -o jsonpath='{.status.podIP}{"\n"}'
+```
+
+**Expected result:** the nginx access log shows **the client pod's own IP**, identical to
+the second command's output. No SNAT, no port mapping: that flat, NAT-free pod network is
+the Kubernetes network model.
 
 ---
 
@@ -35,7 +52,7 @@ No SNAT, no port mapping — the pod sees its own IP.
 kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" http://$SERVER_IP
 ```
 
-Should print `200`.
+**Expected result:** `200` — straight to the pod IP, with no Service in the path.
 
 ---
 
@@ -47,9 +64,15 @@ Expose `server` as a Service:
 kubectl expose pod server --port=80
 kubectl exec client -- nslookup server
 kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" http://server
+kubectl get svc server
 ```
 
-The Service name `server` resolves to a virtual ClusterIP — covered in Lab 18.
+**Expected result:** `nslookup` resolves `server.default.svc.cluster.local` to the
+Service's **ClusterIP** (a `10.96.x.x` address — not the pod IP), and the curl returns
+`200`.
+
+That is the difference worth remembering: the pod IP changes whenever the pod is replaced;
+the Service name and ClusterIP do not. Lab 18 covers Service types.
 
 ---
 
@@ -61,7 +84,18 @@ kubectl exec client -- ip route
 kubectl exec client -- cat /etc/resolv.conf
 ```
 
-The default route points to a per-node CNI gateway; `/etc/resolv.conf` points to the CoreDNS ClusterIP.
+**Expected result:** `eth0` holds the pod IP with a `/32` route, the default route points
+at a per-node CNI gateway (often `169.254.1.1` with Calico), and `/etc/resolv.conf` reads:
+
+```text
+nameserver 10.96.0.10
+search default.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
+`10.96.0.10` is the CoreDNS Service's ClusterIP. The `search` list is why `server` alone
+resolved in Step 4, and `ndots:5` is why short names cost extra DNS lookups — a classic
+performance question.
 
 ---
 
@@ -69,9 +103,14 @@ The default route points to a per-node CNI gateway; `/etc/resolv.conf` points to
 
 ```bash
 kubectl exec client -- traceroute -n $SERVER_IP
+kubectl get pods -o wide | awk '{print $1, $6, $7}'
 ```
 
-You'll see one or two hops depending on whether the pods landed on the same node.
+**Expected result:** if both pods share a node, **one hop** — the traffic never leaves it.
+Across nodes you see two or three hops via the node's CNI overlay.
+
+Either outcome is correct; compare it with the `NODE` column. Pods on one node talk over a
+virtual bridge inside that node, which is why same-node traffic is measurably faster.
 
 ---
 
@@ -81,6 +120,30 @@ You'll see one or two hops depending on whether the pods landed on the same node
 kubectl delete pod client server
 kubectl delete svc server
 ```
+
+---
+
+## Verification
+
+| Check | Expected |
+|---|---|
+| Step 1 — pods up | both `Running` with pod-CIDR IPs (not node IPs) |
+| Step 2 — ping and no NAT | `0% packet loss`; nginx logs the client pod's own IP |
+| Step 3 — direct HTTP | `200` straight to the pod IP |
+| Step 4 — DNS | `server` resolves to a `10.96.x.x` ClusterIP; curl returns `200` |
+| Step 5 — pod networking | `nameserver 10.96.0.10`, `ndots:5`, CNI default route |
+| Step 6 — traceroute | one hop on the same node, two or three across nodes |
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `kubectl exec` fails with `unable to upgrade connection` | The pod is not Running yet: `kubectl get pod client`. |
+| `ping: permission denied` | Some CNIs block ICMP. Use the curl check in Step 3 instead — it proves reachability too. |
+| `nslookup server` returns NXDOMAIN | The Service does not exist yet (Step 4's `expose`), or CoreDNS is down: `kubectl -n kube-system get pods -l k8s-app=kube-dns`. |
+| nginx logs show a node IP, not the pod IP | Traffic was SNATed — you curled a NodePort or an external address, not the pod IP. |
+| Both pods always on one node | The control plane is tainted, so only the worker is schedulable. Expected here. |
+| `traceroute: command not found` | Run it from the `client` (netshoot) pod, not from `server` (nginx). |
 
 ---
 

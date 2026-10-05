@@ -1,8 +1,8 @@
 {
   "title": "Lab 19 — Ingress Controller and Resources",
-  "description": "An Ingress controller is a reverse proxy (typically nginx, Traefik, or Envoy) running inside the cluster that routes external HTTP/HTTPS based on Ingress objects.",
+  "description": "Install a pinned ingress-nginx, route two hostnames to two backends through one NodePort, and add TLS from a Secret.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {

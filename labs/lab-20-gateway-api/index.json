@@ -1,8 +1,8 @@
 {
   "title": "Lab 20 — Gateway API",
-  "description": "The Gateway API is Kubernetes' next-generation ingress: role-oriented (GatewayClass / Gateway / HTTPRoute) and CRD-driven.",
+  "description": "Install Gateway API v1.6.1 and NGINX Gateway Fabric v2.7.2, route traffic with an HTTPRoute, and see the data plane NGF provisions per Gateway.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "45",
   "details": {
     "steps": [
       {
