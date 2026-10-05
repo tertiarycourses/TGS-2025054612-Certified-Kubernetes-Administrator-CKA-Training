@@ -1,20 +1,20 @@
 {
   "title": "Lab 10 — Extension Interfaces (CNI, CSI, CRI)",
-  "description": "Kubernetes plugs into the host via three standard interfaces: CRI, CNI, and CSI.",
+  "description": "Inspect the three plug-points on a live cluster: the CRI socket with crictl, the CNI config and plugin binaries, and the (usually empty) CSI driver list.",
   "difficulty": "intermediate",
   "time": "30",
   "details": {
     "steps": [
       {
-        "title": "Step 1: CRI — talk to the runtime directly",
+        "title": "Step 1: CRI: talk to the runtime directly",
         "text": "step1/text.md"
       },
       {
-        "title": "Step 2: CNI — where the network plugin lives",
+        "title": "Step 2: CNI: where the network plugin lives",
         "text": "step2/text.md"
       },
       {
-        "title": "Step 3: CSI — list installed drivers",
+        "title": "Step 3: CSI: list installed drivers",
         "text": "step3/text.md"
       },
       {

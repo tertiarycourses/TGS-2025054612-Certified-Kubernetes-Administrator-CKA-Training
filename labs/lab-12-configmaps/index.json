@@ -1,8 +1,8 @@
 {
   "title": "Lab 12 — ConfigMaps",
-  "description": "ConfigMaps hold non-secret key/value configuration.",
+  "description": "Build ConfigMaps from literals, a file and a manifest; consume them as env vars and as a mounted file; then prove mounts refresh while env vars do not.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {

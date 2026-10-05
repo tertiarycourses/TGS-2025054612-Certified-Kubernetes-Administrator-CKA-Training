@@ -1,8 +1,8 @@
 {
   "title": "Lab 11 — Deployments: Rolling Update and Rollback",
-  "description": "In this lab you create a Deployment, perform a rolling update by changing the image, watch the rollout, then roll back to the previous revision.",
+  "description": "Create a Deployment, roll it forward, break a rollout on purpose to see maxUnavailable protect the app, roll back, and batch changes with pause/resume.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {

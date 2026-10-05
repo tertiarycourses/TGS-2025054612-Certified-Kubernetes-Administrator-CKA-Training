@@ -19,3 +19,20 @@ EOF
 kubectl wait --for=condition=Ready pod/file-demo --timeout=60s
 kubectl logs file-demo
 ```
+
+**Expected result:**
+
+```text
+log.level=INFO
+cache.ttl=300
+```
+
+The ConfigMap key became a **file** at `/etc/cfg/app.properties`. Check what the mount
+really looks like:
+
+```bash
+kubectl exec file-demo -- ls -l /etc/cfg/
+```
+
+**Expected result:** `app.properties` is a symlink into a `..data/` directory — that
+indirection is how the kubelet swaps content atomically when the ConfigMap changes.

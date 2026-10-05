@@ -17,4 +17,12 @@ kubectl wait --for=condition=Ready pod/env-demo --timeout=60s
 kubectl logs env-demo
 ```
 
-You should see both `APP_ENV=prod` and `APP_TIER=backend`.
+**Expected result:**
+
+```text
+APP_ENV=prod
+APP_TIER=backend
+```
+
+`envFrom` imported every key at once. Use `env:` with `configMapKeyRef` when you need one
+key, or a different variable name.

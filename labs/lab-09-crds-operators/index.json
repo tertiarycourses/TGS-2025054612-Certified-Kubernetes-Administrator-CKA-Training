@@ -1,8 +1,8 @@
 {
   "title": "Lab 9 — CRDs and Operators",
-  "description": "A CustomResourceDefinition (CRD) extends the Kubernetes API with new object kinds.",
+  "description": "Define a CRD by hand, see the API server enforce its schema, then install cert-manager as a real operator and watch its controller turn a Certificate into a TLS Secret.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {

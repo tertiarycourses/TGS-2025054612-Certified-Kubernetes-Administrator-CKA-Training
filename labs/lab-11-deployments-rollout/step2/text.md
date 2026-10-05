@@ -4,4 +4,15 @@
 kubectl get deploy web -o yaml | grep -A5 strategy
 ```
 
-Default is `RollingUpdate` with `maxSurge: 25%` and `maxUnavailable: 25%`.
+**Expected result:**
+
+```yaml
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+```
+
+With four replicas that means at most 5 pods during the rollout (`+25%`) and at least 3
+serving (`-25%`) — Kubernetes rounds surge up and unavailability down.

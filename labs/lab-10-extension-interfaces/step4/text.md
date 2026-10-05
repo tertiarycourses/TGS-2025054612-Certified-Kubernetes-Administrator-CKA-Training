@@ -10,9 +10,13 @@ sudo crictl ps | grep demo
 # CNI side
 kubectl get pod demo -o jsonpath='{.status.podIP}{"\n"}'
 
-# CSI side (no storage attached, but show the node's allocatable)
-kubectl describe csinode $(hostname)
+# CSI side - only exists if a driver is installed
+kubectl describe csinode $(hostname) 2>/dev/null || echo "no csinode object (no CSI driver installed)"
 ```
+
+**Expected result:** `crictl ps` shows the pod's container, the pod has an IP from the CNI's
+pod CIDR, and the CSI lookup reports no driver — the three interfaces, in one pod's
+lifecycle.
 
 Tear down:
 
