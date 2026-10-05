@@ -1,8 +1,8 @@
 {
   "title": "Lab 26 — Troubleshoot Cluster Components",
-  "description": "When the control plane misbehaves, you need to know which static pod, systemd service, or socket to inspect.",
+  "description": "Break the API server's static-pod manifest, diagnose it with crictl and journalctl while kubectl is unavailable, recover it, and check etcd health.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {

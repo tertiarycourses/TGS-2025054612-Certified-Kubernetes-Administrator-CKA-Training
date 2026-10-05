@@ -18,6 +18,13 @@ sleep 5
 kill %1
 ```
 
+**Expected result:** ten numbered lines (`line-0`, `line-1`, …) from `--tail`, then a few
+more streaming live before `kill` stops the follow.
+
+`kubectl logs` reads whatever the container wrote to stdout/stderr — no log agent, no
+configuration. An app that writes to a *file* inside the container produces nothing here,
+which is why containerised apps log to stdout.
+
 ---
 
 ## Step 2 — Previous instance after a crash
@@ -26,10 +33,17 @@ kill %1
 kubectl run crashy --image=busybox -- /bin/sh -c "echo running; sleep 5; exit 1"
 sleep 30
 kubectl get pod crashy
+kubectl logs crashy
 kubectl logs crashy --previous
 ```
 
-`--previous` (or `-p`) reads the last terminated container's log — invaluable when a CrashLoop hides the actual cause.
+**Expected result:** the pod is `CrashLoopBackOff` with `RESTARTS` climbing. Plain
+`kubectl logs` may fail with
+`is waiting to start: ContainerCreating` or show only the newest attempt, while
+`--previous` reliably prints `running` — the output of the instance that died.
+
+That is the whole point: in a crash loop the interesting output belongs to a container that
+no longer exists. `-p` is the first flag to reach for on `CrashLoopBackOff`.
 
 ---
 
@@ -57,6 +71,14 @@ kubectl logs multi -c reader --tail=5
 kubectl logs multi --all-containers --prefix --tail=10
 ```
 
+**Expected result:** the bare `kubectl logs multi` **fails** with
+`a container name must be specified for pod multi, choose one of: [writer reader]`. The
+targeted reads print `writer-N` and `reader-N`, and the last command interleaves both with
+`[pod/multi/writer]`-style prefixes.
+
+`--prefix` is what makes `--all-containers` readable, and both work with `-f` for live
+multi-container tailing.
+
 ---
 
 ## Step 4 — Logs from the host
@@ -67,20 +89,40 @@ ls /var/log/pods/default_multi_*/writer/
 sudo tail /var/log/pods/default_multi_*/writer/0.log
 ```
 
-Each line is JSON: timestamp, stream (`stdout`/`stderr`), and the raw output.
+**Expected result:** a directory per pod named `<namespace>_<pod>_<uid>`, a subdirectory
+per container, and `0.log` inside it. Each line begins with an RFC3339 timestamp, then
+`stdout` or `stderr`, then the raw output — the CRI log format that `kubectl logs` parses.
+
+```bash
+sudo ls /var/log/pods/default_crashy_*/crashy/
+```
+
+**Expected result:** **several** numbered files (`0.log`, `1.log`, …) — one per container
+restart. `kubectl logs --previous` reads the second-newest, and files beyond that are what
+you lose when a pod restarts enough times. Node-level log rotation
+(`containerLogMaxFiles`) is the limit.
 
 ---
 
 ## Step 5 — Multi-pod tail with stern (optional)
 
 ```bash
-GO111MODULE=on go install github.com/stern/stern@latest 2>/dev/null || \
-  curl -L https://github.com/stern/stern/releases/download/v1.30.0/stern_1.30.0_linux_amd64.tar.gz \
-    | sudo tar -xz -C /usr/local/bin stern
+curl -sL https://github.com/stern/stern/releases/download/v1.34.0/stern_1.34.0_linux_amd64.tar.gz \
+  | sudo tar -xz -C /usr/local/bin stern
+stern --version
 stern chatty --tail 5
 ```
 
-Ctrl-C to stop. `stern` follows logs across pods, containers, and namespaces in one stream.
+**Expected result:** `stern` prints its version, then follows the `chatty` pods with each
+line prefixed by pod and container name. Ctrl-C to stop.
+
+`stern` takes a **regex** over pod names and follows across pods, containers and namespaces
+at once — `kubectl logs` needs an exact pod. Try `stern . -n kube-system --tail 1` to watch
+the whole control plane.
+
+> Installed straight from the release tarball and pinned: the previous `go install` path
+> needs a Go toolchain the playground does not have, and an unpinned version has changed
+> flags between course runs.
 
 ---
 
@@ -90,6 +132,29 @@ Ctrl-C to stop. `stern` follows logs across pods, containers, and namespaces in 
 kubectl delete deploy chatty
 kubectl delete pod crashy multi --ignore-not-found
 ```
+
+---
+
+## Verification
+
+| Check | Expected |
+|---|---|
+| Step 1 — basic logs | numbered `line-N` output, then live streaming |
+| Step 2 — previous | `CrashLoopBackOff`; `--previous` prints `running` |
+| Step 3 — multi-container | bare `logs` errors asking for `-c`; `--prefix` interleaves both |
+| Step 4 — on disk | `/var/log/pods/<ns>_<pod>_<uid>/<container>/0.log`, one file per restart |
+| Step 5 — stern | version printed, logs followed across pods with prefixes |
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `a container name must be specified` | Multi-container pod: add `-c <name>` or `--all-containers`. |
+| `previous terminated container not found` | The container has not restarted yet — wait for `RESTARTS` to be at least 1. |
+| `kubectl logs` is empty | The app logs to a file inside the container, not to stdout. |
+| `permission denied` under /var/log/pods | Use `sudo` — those files are root-owned. |
+| `stern: command not found` after install | The tarball extracts one binary; confirm with `ls -l /usr/local/bin/stern`. |
+| Old logs have disappeared | Node log rotation (`containerLogMaxSize`/`containerLogMaxFiles`) discards them; ship logs off-node for retention. |
 
 ---
 

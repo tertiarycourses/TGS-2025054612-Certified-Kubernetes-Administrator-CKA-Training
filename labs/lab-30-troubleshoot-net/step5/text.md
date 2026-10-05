@@ -7,7 +7,7 @@ When `curl <svc>` fails inside a pod:
 kubectl exec probe -- nslookup web
 
 # 2) Does the Service have endpoints?
-kubectl get endpoints web
+kubectl get endpointslices -l kubernetes.io/service-name=web
 
 # 3) Does the pod match the selector?
 kubectl get pods --show-labels -l app=web

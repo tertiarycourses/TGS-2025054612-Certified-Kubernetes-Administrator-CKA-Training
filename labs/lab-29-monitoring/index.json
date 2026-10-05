@@ -1,8 +1,8 @@
 {
   "title": "Lab 29 — Monitor Cluster and Application Usage",
-  "description": "In this lab you install metrics-server, use kubectl top, then install the kube-prometheus-stack via Helm for the full Prometheus and Grafana experience.",
+  "description": "Use metrics-server, kubectl top, events and the kubelet's cAdvisor summary, and understand where Prometheus fits - without trying to run it on 1 CPU.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {
@@ -22,11 +22,11 @@
         "text": "step4/text.md"
       },
       {
-        "title": "Step 5: Install kube-prometheus-stack (optional)",
+        "title": "Step 5: kube-prometheus-stack (reference — do not run it here)",
         "text": "step5/text.md"
       },
       {
-        "title": "Step 6: Sample PromQL queries",
+        "title": "Step 6: PromQL you should recognise",
         "text": "step6/text.md"
       },
       {

@@ -8,4 +8,5 @@ kubectl wait --for=condition=Ready pod/probe --timeout=60s
 kubectl exec probe -- curl -s -o /dev/null -w "%{http_code}\n" http://web
 ```
 
-Baseline: should print `200`.
+**Expected result:** `200`. Establish the baseline before breaking anything — otherwise you
+cannot tell your fault from a pre-existing one.

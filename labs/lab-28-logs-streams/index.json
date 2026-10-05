@@ -1,8 +1,8 @@
 {
   "title": "Lab 28 — Application Logs and Container Streams",
-  "description": "Containers emit logs to stdout and stderr — the kubelet redirects these to /var/log/pods/... and kubectl logs reads them back.",
+  "description": "Read single-, multi- and previous-container logs, find them on disk in the CRI format, and tail many pods at once with a pinned stern.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {

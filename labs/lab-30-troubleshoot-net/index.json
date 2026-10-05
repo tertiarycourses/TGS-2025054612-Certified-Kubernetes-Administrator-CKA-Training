@@ -1,8 +1,8 @@
 {
   "title": "Lab 30 — Troubleshoot Services and Networking",
-  "description": "Service connectivity bugs are the single biggest category of CKA exam questions — in this lab you walk the chain Pod → Service → DNS → Endpoint and fix three intentional faults.",
+  "description": "Break and fix a Service three ways - selector, targetPort and DNS - and learn the seven-step triage chain, reading EndpointSlices rather than the deprecated Endpoints.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {
@@ -10,15 +10,15 @@
         "text": "step1/text.md"
       },
       {
-        "title": "Step 2: Fault 1 — selector mismatch",
+        "title": "Step 2: Fault 1: selector mismatch",
         "text": "step2/text.md"
       },
       {
-        "title": "Step 3: Fault 2 — targetPort mismatch",
+        "title": "Step 3: Fault 2: targetPort mismatch",
         "text": "step3/text.md"
       },
       {
-        "title": "Step 4: Fault 3 — CoreDNS or resolv.conf",
+        "title": "Step 4: Fault 3: CoreDNS or resolv.conf",
         "text": "step4/text.md"
       },
       {

@@ -61,7 +61,7 @@ A CI pipeline ServiceAccount `ci-runner` in namespace `ci` is getting `403 Forbi
 Work through CKA-style tasks covering all five domains using the [Tertiary Infotech CKA Practice Exam](https://exams.tertiaryinfotech.com/practice-exams/linuxfoundation/linuxfoundation-cka). Time yourself — the real exam allows 2 hours for ~15–20 tasks.
 
 Suggested focus areas:
-- etcd snapshot: `etcdctl snapshot save` with correct flags
+- etcd snapshot and restore: `etcdctl snapshot save` with `--endpoints`, `--cacert`, `--cert`, `--key` — and remember that **restore** is `etcdutl snapshot restore` on etcd 3.5+ (removed from `etcdctl` in 3.6), into a **new** `--data-dir`, with the `etcd.yaml` hostPath repointed. See Lab 5.
 - Cluster upgrade: `kubeadm upgrade plan` → `apply` → worker drain/upgrade
 - Deploy + expose + Ingress pipeline
 - PVC binding and StatefulSet volumeClaimTemplates

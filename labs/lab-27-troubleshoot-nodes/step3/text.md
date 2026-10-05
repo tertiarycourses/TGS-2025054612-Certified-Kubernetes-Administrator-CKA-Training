@@ -9,7 +9,19 @@ sudo systemctl restart kubelet
 sudo journalctl -u kubelet -n 30 --no-pager | grep -i cgroup
 ```
 
-`misconfiguration: kubelet cgroup driver: "cgroupfs" is different from docker cgroup driver: "systemd"` — and the node won't reach `Ready`.
+**Expected result:** the kubelet fails to start cleanly and the journal shows a cgroup
+mismatch between the kubelet (`cgroupfs`) and containerd (`SystemdCgroup = true`), with
+pods failing to start. The exact wording varies by version — older messages mention docker —
+but `cgroup` in the error is the signal.
+
+```bash
+sudo systemctl is-active kubelet
+kubectl get nodes
+```
+
+**Expected result:** from the control plane, `node01` goes `NotReady` again. A cgroup-driver
+mismatch is the single most common cause of a node that joins and then never becomes
+ready — it is why Lab 1 sets `SystemdCgroup = true`.
 
 Recover:
 

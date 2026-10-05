@@ -1,8 +1,8 @@
 {
   "title": "Lab 27 — Troubleshoot Nodes",
-  "description": "Nodes go NotReady when the kubelet can't report healthy — in this lab you simulate three common node-level failures and recover from each.",
+  "description": "Simulate and recover four node failures - stopped kubelet, bad cgroup driver, disk pressure and a dead runtime - plus planned maintenance with cordon and drain.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "45",
   "details": {
     "steps": [
       {

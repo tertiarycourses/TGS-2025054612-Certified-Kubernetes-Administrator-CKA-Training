@@ -1,16 +1,16 @@
 {
   "title": "Lab 31 — Troubleshoot RBAC and Scheduling Failures",
-  "description": "Two high-frequency exam scenarios: a ServiceAccount that can't do what it needs, and a Pod that stays Pending because the scheduler refuses to place it.",
+  "description": "Diagnose an RBAC refusal from inside a pod with its own token, grant namespaced then cluster-scoped access, and read the three different Pending causes.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "45",
   "details": {
     "steps": [
       {
-        "title": "Step 1: Create a broken RBAC setup",
+        "title": "Step 1: Create a broken setup",
         "text": "step1/text.md"
       },
       {
-        "title": "Step 2: Diagnose with auth can-i",
+        "title": "Step 2: Diagnose with `auth can-i`",
         "text": "step2/text.md"
       },
       {
