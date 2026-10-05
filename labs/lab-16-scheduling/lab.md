@@ -46,6 +46,14 @@ kubectl get pod ssd-pod -o wide
 
 **Expected result:** `Running` on `$NODE` — the only node with `disktype=ssd`.
 
+The first `get pod` often shows `Pending` with no node assigned: scheduling and the image
+pull take a few seconds. Re-run it, or wait explicitly:
+
+```bash
+kubectl wait --for=condition=Ready pod/ssd-pod --timeout=120s
+kubectl get pod ssd-pod -o wide
+```
+
 `nodeSelector` is a hard filter: no matching node means the pod stays `Pending` forever.
 Try it:
 
@@ -55,9 +63,20 @@ kubectl get pod nowhere
 kubectl describe pod nowhere | grep -A3 Events
 ```
 
-**Expected result:** `Pending`, with
-`0/2 nodes are available: 2 node(s) didn't match Pod's node affinity/selector`. Clean up:
-`kubectl delete pod nowhere`.
+**Expected result:** `Pending`, with an event naming **both** nodes and why each refused:
+
+```text
+0/2 nodes are available: 1 node(s) didn't match Pod's node affinity/selector,
+1 node(s) had untolerated taint(s). preemption: 0/2 nodes are available:
+2 Preemption is not helpful for scheduling.
+```
+
+Read it carefully — the scheduler reports a *different* reason per node. The worker has
+labels but not `disktype=nvme`; the control plane never got that far, because its
+`NoSchedule` taint ruled it out first. The `preemption:` line means evicting lower-priority
+pods would not help either, so the pod simply waits.
+
+Clean up: `kubectl delete pod nowhere`.
 
 ---
 
@@ -87,7 +106,9 @@ kubectl get pod affinity-pod -o wide
 ```
 
 **Expected result:** `Running` on `$NODE`, which satisfies the required `tier=frontend`
-rule and also happens to match the preferred `disktype=ssd` hint.
+rule and also happens to match the preferred `disktype=ssd` hint. Expect
+`ContainerCreating` for the first few seconds — the `NODE` column is already populated,
+which is the part that matters: the scheduler has decided.
 
 `required…` behaves like `nodeSelector` but with richer operators (`In`, `NotIn`, `Exists`,
 `Gt`, `Lt`). `preferred…` only ranks the candidates — if nothing matches, the pod still
@@ -117,16 +138,33 @@ spec:
       containers:
       - { name: app, image: nginx }
 EOF
+kubectl rollout status deploy/spread --timeout=30s || true
 kubectl get pods -l app=spread -o wide
-kubectl describe pod -l app=spread | grep -A3 Events | tail -5
 ```
 
-**Expected result on this playground: one pod `Running`, one pod `Pending`** — and that is
-the lesson, not a failure. `requiredDuringScheduling` anti-affinity with
-`topologyKey: kubernetes.io/hostname` permits at most one `app=spread` pod per node. Only
-the worker is schedulable (the control plane is tainted), so the second replica has nowhere
-to go and reports
-`didn't match pod anti-affinity rules`.
+**Expected result:** a Deployment does not create pods synchronously — it creates a
+ReplicaSet, which then creates the pods — so an immediate `kubectl get pods` returns
+`No resources found`. That is why `rollout status` comes first: it **times out** here,
+correctly, reporting `1 out of 2 new replicas have been updated`, and the listing then
+shows one pod `Running` and one `Pending`.
+
+That split **is** the lesson, not a failure. Read why from the pending pod:
+
+```bash
+PENDING=$(kubectl get pods -l app=spread --field-selector status.phase=Pending \
+  -o jsonpath='{.items[0].metadata.name}')
+kubectl describe pod $PENDING | grep -A4 Events
+```
+
+**Expected result:** an event naming both obstacles, for example
+`1 node(s) didn't match pod anti-affinity rules, 1 node(s) had untolerated taint(s)`.
+
+`requiredDuringScheduling` anti-affinity with `topologyKey: kubernetes.io/hostname` permits
+at most **one** `app=spread` pod per node. Only the worker is schedulable (the control
+plane is tainted), so the second replica has nowhere left to go.
+
+> If `No resources found` persists for more than a few seconds, the Deployment itself was
+> rejected — check `kubectl describe deploy spread` and `kubectl get rs -l app=spread`.
 
 In a real multi-node cluster the two would land on different nodes — which is exactly how
 you spread replicas across failure domains. Swap `required` for
@@ -240,9 +278,9 @@ lab.
 | Check | Expected |
 |---|---|
 | Step 1 — labels | `$NODE` is the worker; `disktype=ssd`, `tier=frontend` on it only |
-| Step 2 — nodeSelector | `ssd-pod` on `$NODE`; an unmatchable selector leaves a pod `Pending` |
+| Step 2 — nodeSelector | `ssd-pod` on `$NODE`; the unmatchable selector gives `1 node(s) didn't match … selector, 1 node(s) had untolerated taint(s)` |
 | Step 3 — affinity | `affinity-pod` on `$NODE`; required filters, preferred only ranks |
-| Step 4 — anti-affinity | one pod Running, one `Pending` with `didn't match pod anti-affinity rules` |
+| Step 4 — anti-affinity | `rollout status` times out at `1 out of 2`; one pod Running, one `Pending` with `didn't match pod anti-affinity rules` |
 | Step 5 — requests/limits | QoS `Burstable`; node shows allocated requests |
 | Step 6 — taints | `notol` `Pending` with untolerated-taint events; `tolerant` Running |
 | Step 7 — cleanup | no custom labels, `Taints: <none>` on the worker |
@@ -254,6 +292,8 @@ lab.
 | `$NODE` is empty in a later step | A new shell lost the variable. Re-run the `NODE=$(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' …)` line. |
 | Pods land on the control plane | You labelled the wrong node. Step 1 selects the worker deliberately. |
 | Second `spread` replica stays `Pending` | Correct here: required anti-affinity allows one pod per node and only the worker is schedulable. |
+| `No resources found` right after creating the Deployment | The ReplicaSet has not created the pods yet. Wait a few seconds, or use `kubectl rollout status deploy/spread`. |
+| A pod shows `Pending` then `ContainerCreating` | Normal: scheduling, then the image pull. The `NODE` column is set as soon as the scheduler decides. |
 | `notol` schedules instead of staying Pending | The control-plane taint was removed earlier. Check `kubectl describe node <cp> | grep -i taints`. |
 | Everything `Pending` after this lab | A taint was left behind: `kubectl taint node <node> workload-`. |
 | `error: at least one taint update is required` | The taint is already gone — the trailing `-` form removes it. |

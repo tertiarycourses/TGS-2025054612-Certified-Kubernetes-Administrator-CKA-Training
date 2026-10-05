@@ -24,7 +24,9 @@ kubectl get pod affinity-pod -o wide
 ```
 
 **Expected result:** `Running` on `$NODE`, which satisfies the required `tier=frontend`
-rule and also happens to match the preferred `disktype=ssd` hint.
+rule and also happens to match the preferred `disktype=ssd` hint. Expect
+`ContainerCreating` for the first few seconds — the `NODE` column is already populated,
+which is the part that matters: the scheduler has decided.
 
 `required…` behaves like `nodeSelector` but with richer operators (`In`, `NotIn`, `Exists`,
 `Gt`, `Lt`). `preferred…` only ranks the candidates — if nothing matches, the pod still

@@ -20,16 +20,33 @@ spec:
       containers:
       - { name: app, image: nginx }
 EOF
+kubectl rollout status deploy/spread --timeout=30s || true
 kubectl get pods -l app=spread -o wide
-kubectl describe pod -l app=spread | grep -A3 Events | tail -5
 ```
 
-**Expected result on this playground: one pod `Running`, one pod `Pending`** — and that is
-the lesson, not a failure. `requiredDuringScheduling` anti-affinity with
-`topologyKey: kubernetes.io/hostname` permits at most one `app=spread` pod per node. Only
-the worker is schedulable (the control plane is tainted), so the second replica has nowhere
-to go and reports
-`didn't match pod anti-affinity rules`.
+**Expected result:** a Deployment does not create pods synchronously — it creates a
+ReplicaSet, which then creates the pods — so an immediate `kubectl get pods` returns
+`No resources found`. That is why `rollout status` comes first: it **times out** here,
+correctly, reporting `1 out of 2 new replicas have been updated`, and the listing then
+shows one pod `Running` and one `Pending`.
+
+That split **is** the lesson, not a failure. Read why from the pending pod:
+
+```bash
+PENDING=$(kubectl get pods -l app=spread --field-selector status.phase=Pending \
+  -o jsonpath='{.items[0].metadata.name}')
+kubectl describe pod $PENDING | grep -A4 Events
+```
+
+**Expected result:** an event naming both obstacles, for example
+`1 node(s) didn't match pod anti-affinity rules, 1 node(s) had untolerated taint(s)`.
+
+`requiredDuringScheduling` anti-affinity with `topologyKey: kubernetes.io/hostname` permits
+at most **one** `app=spread` pod per node. Only the worker is schedulable (the control
+plane is tainted), so the second replica has nowhere left to go.
+
+> If `No resources found` persists for more than a few seconds, the Deployment itself was
+> rejected — check `kubectl describe deploy spread` and `kubectl get rs -l app=spread`.
 
 In a real multi-node cluster the two would land on different nodes — which is exactly how
 you spread replicas across failure domains. Swap `required` for
