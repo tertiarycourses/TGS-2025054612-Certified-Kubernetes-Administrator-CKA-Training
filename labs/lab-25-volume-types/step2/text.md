@@ -17,6 +17,11 @@ spec:
 EOF
 kubectl wait --for=condition=Ready pod/hostpath-demo --timeout=60s
 kubectl logs hostpath-demo
+kubectl get pod hostpath-demo -o jsonpath='{.spec.nodeName}{"\n"}'
 ```
+
+**Expected result:** the log prints the **node's** hostname (not the pod's), and the last
+command names the node it read from. You are looking at the host's `/etc` from inside a
+container.
 
 ⚠️ `hostPath` couples the pod to a specific node and is a security risk — admission controllers usually restrict it.

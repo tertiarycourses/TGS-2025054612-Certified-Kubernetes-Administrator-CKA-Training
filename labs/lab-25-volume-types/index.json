@@ -1,8 +1,8 @@
 {
   "title": "Lab 25 — Volume Types in Pods",
-  "description": "Beyond PVCs, pods can mount many in-tree volume types: emptyDir, hostPath, configMap, secret, projected, and downwardAPI.",
+  "description": "Exercise emptyDir, hostPath, configMap, secret, projected and downwardAPI volumes, checking what each is backed by.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {

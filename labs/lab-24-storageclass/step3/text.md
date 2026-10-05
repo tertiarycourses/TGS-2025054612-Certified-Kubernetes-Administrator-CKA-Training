@@ -6,4 +6,7 @@ kubectl patch storageclass local-path \
 kubectl get sc
 ```
 
-The `(default)` marker appears next to `local-path`.
+**Expected result:** the class now reads `local-path (default)`.
+
+Only **one** class may be the default. Mark two and PVCs that omit `storageClassName` are
+rejected, so clear the old one first when switching.

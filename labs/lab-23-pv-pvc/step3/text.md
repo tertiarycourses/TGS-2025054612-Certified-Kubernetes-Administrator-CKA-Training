@@ -14,4 +14,9 @@ kubectl get pvc pvc-host
 kubectl get pv pv-host
 ```
 
-The PVC binds to the PV because both have `storageClassName: manual` and the PV size satisfies the request.
+**Expected result:** the PVC is `Bound` to `pv-host`, and the PV's status flips from
+`Available` to `Bound` with `CLAIM default/pvc-host`.
+
+Binding needs **all** of: the same `storageClassName`, a compatible access mode, and a PV
+at least as large as the request. Note the PVC asked for `500Mi` and got the whole `1Gi`
+volume — static PVs are never split.

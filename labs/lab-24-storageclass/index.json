@@ -1,8 +1,8 @@
 {
   "title": "Lab 24 — StorageClass and Dynamic Provisioning",
-  "description": "Static PVs don't scale — with dynamic provisioning, a StorageClass and CSI driver creates a PV on demand when a PVC is submitted.",
+  "description": "Install a pinned local-path provisioner, meet WaitForFirstConsumer binding, and give each StatefulSet replica its own dynamically provisioned volume.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "45",
   "details": {
     "steps": [
       {

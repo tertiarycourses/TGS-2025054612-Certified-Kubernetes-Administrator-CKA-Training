@@ -4,4 +4,6 @@
 kubectl get storageclass
 ```
 
-On Killercoda you may already have a `local-path` StorageClass. If yes, skip Step 2.
+**Expected result:** on a plain `kubeadm` cluster, `No resources found` — there is no
+dynamic provisioning until you add a provisioner. If a `local-path` class is already listed
+(some playground images ship one), skip Step 2.

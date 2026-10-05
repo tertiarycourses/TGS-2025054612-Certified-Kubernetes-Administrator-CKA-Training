@@ -33,9 +33,14 @@ spec:
       accessModes: [ReadWriteOnce]
       resources: { requests: { storage: 500Mi } }
 EOF
-kubectl rollout status statefulset/db
+kubectl rollout status statefulset/db --timeout=300s
 kubectl get pvc
 kubectl get pv
 ```
 
-Each replica gets its **own** PVC and PV — `data-db-0`, `data-db-1`.
+**Expected result:** PVCs `data-db-0` and `data-db-1`, each `Bound` to its own PV, and pods
+`db-0`, `db-1` Running.
+
+Each replica gets its **own** volume from the same template — that is how databases scale
+in Kubernetes. On a 1-CPU playground two PostgreSQL pods are slow to start, and `db-1` may
+stay `Pending` for a while; the PVC naming is the lesson either way.

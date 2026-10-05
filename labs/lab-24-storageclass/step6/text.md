@@ -7,4 +7,14 @@ kubectl wait --for=condition=Ready pod/db-0 --timeout=120s
 kubectl exec db-0 -- psql -U postgres -c "select * from t;"
 ```
 
-Data survives the pod restart.
+**Expected result:**
+
+```text
+ x
+---
+ 1
+(1 row)
+```
+
+The pod was destroyed and recreated, but `db-0` kept **its** PVC — a StatefulSet pod always
+re-attaches to the volume matching its ordinal, which is why it can run a database.

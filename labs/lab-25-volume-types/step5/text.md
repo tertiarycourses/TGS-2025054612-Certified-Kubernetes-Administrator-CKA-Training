@@ -25,3 +25,14 @@ EOF
 kubectl wait --for=condition=Ready pod/downward-demo --timeout=60s
 kubectl logs downward-demo
 ```
+
+**Expected result:**
+
+```text
+env="prod"
+tier="web"
+downward-demo
+```
+
+The pod's own labels and name, delivered as files. `downwardAPI` is how an app learns its
+identity without calling the API server — no RBAC, no client library.

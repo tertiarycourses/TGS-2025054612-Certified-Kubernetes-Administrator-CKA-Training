@@ -16,7 +16,12 @@ spec:
     persistentVolumeClaim: { claimName: pvc-host }
 EOF
 kubectl wait --for=condition=Ready pod/web --timeout=60s
+kubectl get pod web -o wide
 kubectl exec web -- curl -s localhost
 ```
 
-You should see "hello from host".
+**Expected result:** `hello from host` — the file you wrote on the node in Step 1, served
+by nginx from the mounted volume. The `NODE` column must show the node from Step 1.
+
+If you get nginx's default welcome page instead, the pod is running on a different node
+from the directory — check the node affinity in Step 2.

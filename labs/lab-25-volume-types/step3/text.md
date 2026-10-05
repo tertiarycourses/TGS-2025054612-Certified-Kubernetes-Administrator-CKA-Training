@@ -24,4 +24,8 @@ spec:
 EOF
 kubectl wait --for=condition=Ready pod/mount-demo --timeout=60s
 kubectl logs mount-demo
+kubectl exec mount-demo -- df -h /cfg /sec | tail -2
 ```
+
+**Expected result:** `hi` then `s3cret`, and both mounts report **`tmpfs`** — ConfigMap and
+Secret volumes are memory-backed, so their contents are never written to the node's disk.

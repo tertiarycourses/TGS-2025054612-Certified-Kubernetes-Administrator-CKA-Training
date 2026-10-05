@@ -2,5 +2,8 @@
 
 ```bash
 kubectl delete pv pv-host
-sudo rm -rf /mnt/data
+ssh $TARGET "sudo rm -rf /mnt/data"
 ```
+
+**Expected result:** the PV is gone and the directory is removed **from the worker** — the
+node where you created it.

@@ -6,4 +6,13 @@ kubectl wait --for=condition=Ready pod/dnsdebug --timeout=60s
 kubectl exec dnsdebug -- cat /etc/resolv.conf
 ```
 
-`nameserver` is the kube-dns ClusterIP; `search` lists the namespace search domains.
+**Expected result:**
+
+```text
+nameserver 10.96.0.10
+search default.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
+The `nameserver` is the kube-dns ClusterIP, and the `search` list is why short names work
+inside the cluster.

@@ -1,8 +1,8 @@
 {
   "title": "Lab 22 — CoreDNS",
-  "description": "CoreDNS is the default in-cluster DNS server.",
+  "description": "Inspect CoreDNS, query A, headless and SRV records (with a named port), then add and safely revert a Corefile stub zone.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {

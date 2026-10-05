@@ -19,6 +19,9 @@ spec:
 EOF
 kubectl wait --for=condition=Ready pod/web --timeout=60s
 kubectl exec web -- curl -s localhost
+ssh $TARGET "cat /mnt/data/index.html"
 ```
 
-The new pod sees the previous pod's data — PVCs survive pod restarts.
+**Expected result:** `from pod` from both commands — the new pod sees what the old one
+wrote, and the data is really on the node's disk. The pod was deleted and recreated; the
+volume was not.

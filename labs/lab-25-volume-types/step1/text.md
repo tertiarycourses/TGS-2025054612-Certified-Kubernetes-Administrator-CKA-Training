@@ -23,4 +23,14 @@ kubectl wait --for=condition=Ready pod/scratch --timeout=60s
 kubectl logs scratch -c reader
 ```
 
-Two containers share `/data`. Deleting the pod deletes the volume.
+**Expected result:** `hello` — written by the `writer` container, read by `reader` through
+the shared `emptyDir`.
+
+```bash
+kubectl exec scratch -c reader -- df -h /data | tail -1
+```
+
+**Expected result:** the mount is backed by the node's disk (an `overlay` or `/dev/...`
+line). `emptyDir: {}` lives on disk; add `medium: Memory` to make it tmpfs. Either way it
+is created when the pod starts and **deleted with the pod** — scratch space, never
+storage.

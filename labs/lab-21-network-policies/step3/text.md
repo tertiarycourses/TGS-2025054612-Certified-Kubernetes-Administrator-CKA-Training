@@ -18,4 +18,11 @@ kubectl -n netpol exec client-ok  -- curl -s --max-time 3 http://server || echo 
 kubectl -n netpol exec client-bad -- curl -s --max-time 3 http://server || echo BLOCKED
 ```
 
-Both are now blocked.
+**Expected result:** `BLOCKED` twice, after a ~3 second timeout each.
+
+Note *how* it fails: the request **times out** rather than being refused. A dropped packet
+looks like a hang, which is why "my app is slow" is so often a NetworkPolicy problem.
+
+`podSelector: {}` selects **every** pod in the namespace, and naming `Ingress` in
+`policyTypes` with no `ingress:` rules means "allow nothing in". Egress is untouched —
+these pods can still make outbound calls.

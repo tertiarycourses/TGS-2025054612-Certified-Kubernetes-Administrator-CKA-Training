@@ -22,4 +22,9 @@ kubectl wait --for=condition=Ready pod/projected-demo --timeout=60s
 kubectl logs projected-demo
 ```
 
-A single mount point exposes keys from multiple ConfigMaps/Secrets/serviceAccountTokens.
+**Expected result:** the listing shows **both** `greeting` and `token` under `/proj`,
+followed by `hi` and `s3cret`.
+
+One mount point, two sources — which is how a pod receives a ServiceAccount token, a CA
+bundle and its namespace from a single `projected` volume (look at any pod's
+`/var/run/secrets/kubernetes.io/serviceaccount`).

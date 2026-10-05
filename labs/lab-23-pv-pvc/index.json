@@ -1,12 +1,12 @@
 {
   "title": "Lab 23 — PersistentVolume and PersistentVolumeClaim",
-  "description": "A PersistentVolume (PV) is a piece of storage in the cluster.",
+  "description": "Statically provision a hostPath PV pinned to the right node, bind it with a PVC, prove data outlives the pod, and work through Retain reclaim behaviour.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {
-        "title": "Step 1: Prepare a host directory",
+        "title": "Step 1: Prepare a host directory on the node that will run the pod",
         "text": "step1/text.md"
       },
       {

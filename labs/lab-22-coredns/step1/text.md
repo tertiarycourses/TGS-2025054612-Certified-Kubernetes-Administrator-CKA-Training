@@ -6,4 +6,8 @@ kubectl -n kube-system get pods -l k8s-app=kube-dns
 kubectl -n kube-system get configmap coredns -o yaml
 ```
 
-`kube-dns` is the Service name (legacy) even though the pods are CoreDNS.
+**Expected result:** a Service named `kube-dns` with ClusterIP `10.96.0.10`, two CoreDNS
+pods `Running`, and a Corefile containing the `kubernetes cluster.local` plugin.
+
+`kube-dns` is the Service name for backward compatibility even though the pods run
+CoreDNS — every pod's `/etc/resolv.conf` points at that ClusterIP.

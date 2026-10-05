@@ -1,12 +1,12 @@
 {
   "title": "Lab 21 — Network Policies",
-  "description": "NetworkPolicy is the Kubernetes firewall for pod-to-pod traffic.",
+  "description": "Verify your CNI enforces policy, then build deny-by-default and progressively allow pod, namespace and egress traffic - including the TCP/53 DNS trap.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {
-        "title": "Step 1: Create a test namespace and pods",
+        "title": "Step 1: Check your CNI enforces policy, then create the test pods",
         "text": "step1/text.md"
       },
       {

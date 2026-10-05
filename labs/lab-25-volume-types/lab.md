@@ -30,7 +30,17 @@ kubectl wait --for=condition=Ready pod/scratch --timeout=60s
 kubectl logs scratch -c reader
 ```
 
-Two containers share `/data`. Deleting the pod deletes the volume.
+**Expected result:** `hello` — written by the `writer` container, read by `reader` through
+the shared `emptyDir`.
+
+```bash
+kubectl exec scratch -c reader -- df -h /data | tail -1
+```
+
+**Expected result:** the mount is backed by the node's disk (an `overlay` or `/dev/...`
+line). `emptyDir: {}` lives on disk; add `medium: Memory` to make it tmpfs. Either way it
+is created when the pod starts and **deleted with the pod** — scratch space, never
+storage.
 
 ---
 
@@ -53,7 +63,12 @@ spec:
 EOF
 kubectl wait --for=condition=Ready pod/hostpath-demo --timeout=60s
 kubectl logs hostpath-demo
+kubectl get pod hostpath-demo -o jsonpath='{.spec.nodeName}{"\n"}'
 ```
+
+**Expected result:** the log prints the **node's** hostname (not the pod's), and the last
+command names the node it read from. You are looking at the host's `/etc` from inside a
+container.
 
 ⚠️ `hostPath` couples the pod to a specific node and is a security risk — admission controllers usually restrict it.
 
@@ -85,7 +100,11 @@ spec:
 EOF
 kubectl wait --for=condition=Ready pod/mount-demo --timeout=60s
 kubectl logs mount-demo
+kubectl exec mount-demo -- df -h /cfg /sec | tail -2
 ```
+
+**Expected result:** `hi` then `s3cret`, and both mounts report **`tmpfs`** — ConfigMap and
+Secret volumes are memory-backed, so their contents are never written to the node's disk.
 
 ---
 
@@ -113,7 +132,12 @@ kubectl wait --for=condition=Ready pod/projected-demo --timeout=60s
 kubectl logs projected-demo
 ```
 
-A single mount point exposes keys from multiple ConfigMaps/Secrets/serviceAccountTokens.
+**Expected result:** the listing shows **both** `greeting` and `token` under `/proj`,
+followed by `hi` and `s3cret`.
+
+One mount point, two sources — which is how a pod receives a ServiceAccount token, a CA
+bundle and its namespace from a single `projected` volume (look at any pod's
+`/var/run/secrets/kubernetes.io/serviceaccount`).
 
 ---
 
@@ -145,6 +169,17 @@ kubectl wait --for=condition=Ready pod/downward-demo --timeout=60s
 kubectl logs downward-demo
 ```
 
+**Expected result:**
+
+```text
+env="prod"
+tier="web"
+downward-demo
+```
+
+The pod's own labels and name, delivered as files. `downwardAPI` is how an app learns its
+identity without calling the API server — no RBAC, no client library.
+
 ---
 
 ## Step 6 — Cleanup
@@ -154,6 +189,29 @@ kubectl delete pod scratch hostpath-demo mount-demo projected-demo downward-demo
 kubectl delete configmap demo-cfg
 kubectl delete secret demo-sec
 ```
+
+---
+
+## Verification
+
+| Check | Expected |
+|---|---|
+| Step 1 — emptyDir | `hello` shared between containers; disk-backed, pod-lifetime |
+| Step 2 — hostPath | the node's hostname, and the node it came from |
+| Step 3 — configMap/secret | `hi`, `s3cret`, both mounts `tmpfs` |
+| Step 4 — projected | both keys under one mount point |
+| Step 5 — downwardAPI | the pod's labels and name as file contents |
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `kubectl logs` needs `-c` | Multi-container pod: name the container, e.g. `-c reader`. |
+| `reader` logs are empty | It started before `writer` wrote the file. `kubectl delete pod scratch` and re-apply, or check `-c writer`. |
+| hostPath pod `Pending` | The path must exist on the chosen node; `type: Directory` requires it up front. |
+| `projected` rejects the manifest | Inside `sources`, a Secret uses `name:` while a standalone `secret` volume uses `secretName:`. |
+| downwardAPI labels file is empty | The pod has no labels — add them under `metadata.labels`. |
+| ConfigMap file does not refresh | It was mounted with `subPath`, which pins content. Mount the directory instead. |
 
 ---
 
