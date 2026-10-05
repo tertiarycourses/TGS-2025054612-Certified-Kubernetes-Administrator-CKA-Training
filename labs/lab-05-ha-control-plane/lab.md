@@ -243,7 +243,10 @@ echo "--- phase 1 done: snapshot restored"
 # Phase 2 - stop the control plane
 sudo mkdir -p /etc/kubernetes/manifests-stopped
 sudo mv /etc/kubernetes/manifests/*.yaml /etc/kubernetes/manifests-stopped/
-until ! sudo crictl ps 2>/dev/null | grep -q etcd; do sleep 3; done
+# Wait until etcd's client port is closed. Do NOT test this with `crictl ps | grep etcd`:
+# if crictl is missing, that prints nothing, the grep fails, and the loop exits instantly -
+# the restore would then run while etcd is still writing.
+until ! sudo ss -lnt 2>/dev/null | grep -q ':2379'; do sleep 3; done
 echo "--- phase 2 done: control plane stopped (kubectl will not answer now)"
 
 # Phase 3 - point etcd at the restored directory
@@ -296,7 +299,7 @@ sudo ls /var/lib/etcd-restore/member
 # 2. stop the control plane
 sudo mkdir -p /etc/kubernetes/manifests-stopped
 sudo mv /etc/kubernetes/manifests/*.yaml /etc/kubernetes/manifests-stopped/
-until ! sudo crictl ps 2>/dev/null | grep -q etcd; do sleep 3; done
+until ! sudo ss -lnt 2>/dev/null | grep -q ':2379'; do sleep 3; done
 
 # 3. repoint the hostPath
 sudo sed -i 's#path: /var/lib/etcd$#path: /var/lib/etcd-restore#' \
@@ -336,7 +339,8 @@ Grep for the `path:` line itself, not for `name: etcd-data` — in this manifest
 | `unknown command "restore"` | etcd 3.6 removed restore from `etcdctl`: use `etcdutl snapshot restore`. |
 | `data-dir "/var/lib/etcd-restore" exists` | Restore target must be new: `sudo rm -rf /var/lib/etcd-restore` and retry. |
 | `The connection to the server …:6443 was refused` during or after Step 6 | The control plane is still stopped. Check `ls /etc/kubernetes/manifests-stopped/` — if the manifests are there, phase 4 never ran: `sudo mv /etc/kubernetes/manifests-stopped/*.yaml /etc/kubernetes/manifests/`, then wait on `/readyz`. |
-| `kubectl` still refused long after the manifests went back | Check the static pods started: `ls /etc/kubernetes/manifests`, then `sudo crictl ps -a \| grep etcd` and `sudo journalctl -u kubelet -n 50`. |
+| `kubectl` still refused long after the manifests went back | Check the static pods started: `ls /etc/kubernetes/manifests`, then `sudo ss -lnt \| grep 2379` and `sudo journalctl -u kubelet -n 50`. |
+| `crictl: command not found` | It is not installed on this image, and it is **not** needed here - the waits use `ss`. Install it with `sudo apt-get install -y cri-tools` if you want container-level inspection (Lab 1, Step 6). |
 | `Forbidden: User "kubernetes-admin" cannot …` after the restore | etcd started on an **empty** data directory, so RBAC went with the rest of the data — the restore was skipped, or the `hostPath` points somewhere that did not exist and `DirectoryOrCreate` made it empty. Stop the control plane, `sudo rm -rf /var/lib/etcd-restore`, run the restore, confirm `member/` exists, then start again. |
 | Objects still missing after restore | etcd is probably still on the old directory. Check with `sudo grep -n "path: /var/lib/etcd" /etc/kubernetes/manifests/etcd.yaml`, then restart the pod by moving `etcd.yaml` out and back. |
 | `localhost:8080 ... refused` | No kubeconfig — copy `admin.conf` as shown at the top. |

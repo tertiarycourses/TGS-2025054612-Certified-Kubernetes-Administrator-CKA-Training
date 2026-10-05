@@ -30,7 +30,10 @@ echo "--- phase 1 done: snapshot restored"
 # Phase 2 - stop the control plane
 sudo mkdir -p /etc/kubernetes/manifests-stopped
 sudo mv /etc/kubernetes/manifests/*.yaml /etc/kubernetes/manifests-stopped/
-until ! sudo crictl ps 2>/dev/null | grep -q etcd; do sleep 3; done
+# Wait until etcd's client port is closed. Do NOT test this with `crictl ps | grep etcd`:
+# if crictl is missing, that prints nothing, the grep fails, and the loop exits instantly -
+# the restore would then run while etcd is still writing.
+until ! sudo ss -lnt 2>/dev/null | grep -q ':2379'; do sleep 3; done
 echo "--- phase 2 done: control plane stopped (kubectl will not answer now)"
 
 # Phase 3 - point etcd at the restored directory
@@ -83,7 +86,7 @@ sudo ls /var/lib/etcd-restore/member
 # 2. stop the control plane
 sudo mkdir -p /etc/kubernetes/manifests-stopped
 sudo mv /etc/kubernetes/manifests/*.yaml /etc/kubernetes/manifests-stopped/
-until ! sudo crictl ps 2>/dev/null | grep -q etcd; do sleep 3; done
+until ! sudo ss -lnt 2>/dev/null | grep -q ':2379'; do sleep 3; done
 
 # 3. repoint the hostPath
 sudo sed -i 's#path: /var/lib/etcd$#path: /var/lib/etcd-restore#' \

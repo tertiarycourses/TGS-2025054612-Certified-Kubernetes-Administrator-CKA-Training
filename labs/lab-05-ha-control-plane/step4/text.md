@@ -6,6 +6,8 @@ sudo ETCDCTL_API=3 etcdctl --endpoints=$EP --cacert=$CA --cert=$CERT --key=$KEY 
 ls -lh /opt/etcd-backup.db
 ```
 
+**Expected result:** `Snapshot saved at /opt/etcd-backup.db`, a file of a few tens of MB.
+
 Verify it — a snapshot you have not inspected is not a backup:
 
 ```bash
@@ -16,8 +18,10 @@ else
 fi
 ```
 
-A table with HASH, REVISION, TOTAL KEYS and TOTAL SIZE.
+**Expected result:** a table with HASH, REVISION, TOTAL KEYS and TOTAL SIZE. Thousands of
+keys is normal.
 
-Snapshot *save* talks to a running etcd, so it is always `etcdctl`. *Status* and *restore*
-only touch files: etcd 3.5 moved them to `etcdutl`, and 3.6 removed `restore` from
-`etcdctl`.
+> **`etcdctl` or `etcdutl`?** Snapshot *save* talks to a running etcd, so it is always
+> `etcdctl`. Snapshot *status* and *restore* only touch files, and etcd 3.5 moved them to
+> `etcdutl`; etcd 3.6 removed `restore` from `etcdctl` altogether. The `if` above works
+> either way — in the exam, check with `command -v etcdutl` before you type.

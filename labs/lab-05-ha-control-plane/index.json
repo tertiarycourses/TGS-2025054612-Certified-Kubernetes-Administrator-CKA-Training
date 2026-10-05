@@ -6,7 +6,7 @@
   "details": {
     "steps": [
       {
-        "title": "Step 1: HA overview - topology, quorum, HA-readiness",
+        "title": "Step 1: Topology, quorum, and what makes a cluster HA-ready",
         "text": "step1/text.md"
       },
       {

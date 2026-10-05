@@ -65,6 +65,17 @@ kubelet keeps restarting it.
 
 The API is gone, so use container-level tools.
 
+> **`crictl: command not found`?** It is not part of containerd or kubeadm — the playground
+> image often lacks it. Install it from the same Kubernetes apt repo (see Lab 1, Step 6), or
+> use containerd's own CLI, which is always present:
+>
+> ```bash
+> command -v crictl || sudo apt-get install -y cri-tools
+> # or, with no install at all:
+> sudo ctr -n k8s.io containers ls | head
+> ```
+
+
 ```bash
 sudo crictl ps -a | grep apiserver
 sudo crictl logs $(sudo crictl ps -a | grep apiserver | awk '{print $1}' | head -1) 2>&1 | tail -20

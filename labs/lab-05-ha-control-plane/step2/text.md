@@ -1,6 +1,6 @@
 # Step 2 — Find etcd's endpoint, certificates and data directory
 
-Read them from the static-pod manifest rather than guessing:
+Never guess these — they are in the static-pod manifest that defines etcd:
 
 ```bash
 sudo grep -E "data-dir|listen-client-urls|--cert-file|--key-file|trusted-ca-file" \
@@ -8,10 +8,12 @@ sudo grep -E "data-dir|listen-client-urls|--cert-file|--key-file|trusted-ca-file
 sudo grep -n -B2 "name: etcd-data" /etc/kubernetes/manifests/etcd.yaml
 ```
 
-Client URL `https://127.0.0.1:2379`, certificates under `/etc/kubernetes/pki/etcd/`, and a
-`hostPath` of `/var/lib/etcd`.
+**Expected result:** client URL `https://127.0.0.1:2379`, server cert and key under
+`/etc/kubernetes/pki/etcd/`, `--data-dir=/var/lib/etcd` inside the container, and a
+`hostPath` of `/var/lib/etcd` on the node.
 
-The restore runs on the host while etcd is stopped, so install the client there:
+Install the client tools on the node — the restore must run on the host, while etcd is
+stopped, so an exec into the pod will not do:
 
 ```bash
 sudo apt-get update -qq && sudo apt-get install -y etcd-client
@@ -30,6 +32,8 @@ sudo tar xzf /tmp/etcd.tar.gz -C /usr/local/bin --strip-components=1 \
 etcdctl version && etcdutl version
 ```
 
+Set the connection details once, so every command below is short:
+
 ```bash
 export ETCDCTL_API=3
 CA=/etc/kubernetes/pki/etcd/ca.crt
@@ -38,10 +42,12 @@ KEY=/etc/kubernetes/pki/etcd/server.key
 EP=https://127.0.0.1:2379
 ```
 
+Confirm you can reach etcd:
+
 ```bash
 sudo ETCDCTL_API=3 etcdctl --endpoints=$EP --cacert=$CA --cert=$CERT --key=$KEY \
   endpoint health
 ```
 
-`https://127.0.0.1:2379 is healthy`. A certificate error means wrong flags — the most
-common exam mistake.
+**Expected result:** `https://127.0.0.1:2379 is healthy`. If you get a certificate error,
+re-read the paths from the manifest above — wrong flags are the most common exam mistake.

@@ -14,6 +14,17 @@ In this lab you inspect each one on a running cluster.
 
 `kubelet` talks to the runtime over a Unix socket. `crictl` is the debug client.
 
+> **`crictl: command not found`?** It is not part of containerd or kubeadm — the playground
+> image often lacks it. Install it from the same Kubernetes apt repo (see Lab 1, Step 6), or
+> use containerd's own CLI, which is always present:
+>
+> ```bash
+> command -v crictl || sudo apt-get install -y cri-tools
+> # or, with no install at all:
+> sudo ctr -n k8s.io containers ls | head
+> ```
+
+
 ```bash
 sudo crictl info | head -20
 sudo crictl ps
