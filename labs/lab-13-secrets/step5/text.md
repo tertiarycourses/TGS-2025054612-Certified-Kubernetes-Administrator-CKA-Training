@@ -6,7 +6,13 @@ kubectl create secret docker-registry regcred \
   --docker-username=demo \
   --docker-password=demo123 \
   --docker-email=demo@example.com
+kubectl get secret regcred -o jsonpath='{.type}{"\n"}'
+kubectl get secret regcred -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d; echo
 ```
+
+**Expected result:** type `kubernetes.io/dockerconfigjson`, and the decoded value is a JSON
+document containing the server, username and a base64 `auth` field. These credentials are
+fake, so no pull will succeed with them — the point is the shape of the object.
 
 Reference from a pod:
 

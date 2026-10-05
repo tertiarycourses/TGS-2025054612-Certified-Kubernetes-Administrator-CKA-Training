@@ -1,8 +1,8 @@
 {
   "title": "Lab 16 — Pod Scheduling (Limits, Affinity, Taints)",
-  "description": "In this lab you control where pods land using resource requests, nodeSelector, node affinity, and taints/tolerations.",
+  "description": "Steer the scheduler with labels, nodeSelector, node and pod anti-affinity, requests and limits, and taints/tolerations - each step showing why a pod schedules or stays Pending.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "45",
   "details": {
     "steps": [
       {

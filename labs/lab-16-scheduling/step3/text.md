@@ -23,4 +23,9 @@ EOF
 kubectl get pod affinity-pod -o wide
 ```
 
-`required...` is a hard rule, `preferred...` is a soft hint.
+**Expected result:** `Running` on `$NODE`, which satisfies the required `tier=frontend`
+rule and also happens to match the preferred `disktype=ssd` hint.
+
+`required…` behaves like `nodeSelector` but with richer operators (`In`, `NotIn`, `Exists`,
+`Gt`, `Lt`). `preferred…` only ranks the candidates — if nothing matches, the pod still
+schedules. That is the entire difference, and it is examinable.

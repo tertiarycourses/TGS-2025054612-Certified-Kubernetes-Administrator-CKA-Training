@@ -1,8 +1,8 @@
 {
   "title": "Lab 13 — Secrets",
-  "description": "Kubernetes Secrets carry sensitive data — passwords, tokens, TLS keys — and are base64-encoded (not encrypted) by default.",
+  "description": "Create generic, TLS and docker-registry Secrets, consume them as env vars and as tmpfs-mounted files, and see why base64 is not encryption.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "35",
   "details": {
     "steps": [
       {

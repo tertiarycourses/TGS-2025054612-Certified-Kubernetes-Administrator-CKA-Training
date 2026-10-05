@@ -1,8 +1,8 @@
 {
   "title": "Lab 14 — Horizontal Pod Autoscaling",
-  "description": "The Horizontal Pod Autoscaler (HPA) scales a Deployment up and down based on observed CPU/memory or custom metrics.",
+  "description": "Install metrics-server, wait for metrics to appear, autoscale a CPU-bound Deployment, drive load, and watch the stabilisation window delay scale-down.",
   "difficulty": "intermediate",
-  "time": "30",
+  "time": "40",
   "details": {
     "steps": [
       {

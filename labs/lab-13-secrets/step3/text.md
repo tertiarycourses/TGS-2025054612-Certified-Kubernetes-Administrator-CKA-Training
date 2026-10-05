@@ -20,4 +20,16 @@ kubectl wait --for=condition=Ready pod/sec-file --timeout=60s
 kubectl logs sec-file
 ```
 
-Files mounted from a Secret are tmpfs — never written to disk on the node.
+**Expected result:** the listing shows `password` and `username`, then `admin` — one file
+per key, named after the key.
+
+Prove the claim that it is memory-backed:
+
+```bash
+kubectl exec sec-file -- df -h /etc/db | tail -1
+kubectl exec sec-file -- ls -l /etc/db/
+```
+
+**Expected result:** the filesystem is `tmpfs`, and the files are symlinks into `..data/`
+(the same atomic-swap trick as ConfigMaps). Files mounted from a Secret live in RAM and are
+never written to the node's disk.

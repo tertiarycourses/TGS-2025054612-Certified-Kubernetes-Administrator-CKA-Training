@@ -11,7 +11,18 @@ Watch:
 
 ```bash
 kubectl get hpa -w
-kubectl get pods -l app=php-apache -w
 ```
 
-CPU should climb above 50%, the HPA replica count should rise toward 5.
+**Expected result:** within a minute `TARGETS` climbs well past `50%` (often several hundred
+per cent, since one busy pod can use many times its 100m request), and `REPLICAS` rises
+step by step toward `5`. Scale-**up** decisions are made about every 15 seconds.
+
+```bash
+kubectl get pods -l app=php-apache
+kubectl top pods -l app=php-apache
+```
+
+**Expected result:** up to five pods. On a 1-CPU playground some may stay `Pending` for lack
+of CPU — the HPA's *desired* count still rises, which is what you are observing. The load
+generator competes for the same single CPU, so numbers swing; that is the environment, not
+the HPA.
