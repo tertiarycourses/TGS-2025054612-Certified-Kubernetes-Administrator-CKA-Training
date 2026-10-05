@@ -199,6 +199,7 @@ kubectl delete ns netpol trusted
 | Everything returns `200` even after default-deny | Your CNI does not enforce policy (Flannel). Install Calico — see Step 1. |
 | Requests hang instead of failing fast | Expected: denied packets are dropped, not refused. Use `--max-time`. |
 | DNS breaks as soon as an egress policy exists | Allow both UDP **and** TCP on port 53, as Step 6 does. |
+| `;; Got recursion not available from 10.96.0.10` | Cosmetic warning from `nslookup`, not a failure — CoreDNS does not advertise recursion to pods. |
 | A cross-namespace allow does not work | The namespace needs the label the policy selects: `kubectl label ns trusted purpose=trusted`. |
 | `podSelector` + `namespaceSelector` behave unexpectedly | Separate list items are OR; the same item is AND. Check with `kubectl get netpol <name> -o yaml`. |
 | `kubectl patch` rejects the policy | Pass JSON with `--type=merge`, not a YAML string. |

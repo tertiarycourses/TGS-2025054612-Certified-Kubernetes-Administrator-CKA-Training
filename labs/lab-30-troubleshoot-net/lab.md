@@ -180,6 +180,7 @@ kubectl delete pod probe
 | Endpoint list is empty | Selector/label mismatch: compare `svc -o jsonpath='{.spec.selector}'` with `get pods --show-labels`. |
 | Connection hangs vs refused | Hang = dropped (no endpoints, or NetworkPolicy); refused = reached the pod, wrong port. |
 | Name fails but pod IP works | DNS. Check CoreDNS pods and the pod's `/etc/resolv.conf`. |
+| `;; Got recursion not available from 10.96.0.10` | Cosmetic warning from `nslookup`, not a failure — CoreDNS does not advertise recursion to pods. |
 | Endpoints exist but traffic still fails | Check `targetPort` against the container port, then NetworkPolicies. |
 | `kubectl get endpoints` prints a deprecation warning | Expected on v1.33+; use `endpointslices`. |
 | Everything looks right and still fails | Check kube-proxy: `kubectl -n kube-system get pods -l k8s-app=kube-proxy` and its logs. |

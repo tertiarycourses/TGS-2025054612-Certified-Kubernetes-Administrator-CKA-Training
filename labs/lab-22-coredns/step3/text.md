@@ -19,8 +19,13 @@ kubectl exec dnsdebug -- dig +short web.default.svc.cluster.local
 kubectl exec dnsdebug -- dig +short web   # short name via search list
 ```
 
-**Expected result:** both lookups return the Service's ClusterIP (a `10.96.x.x` address),
-not a pod IP. A ClusterIP Service gets one A record pointing at the virtual IP.
+**Expected result:** both lookups return the Service's ClusterIP — an address from the
+service range, not a pod IP. A ClusterIP Service gets one A record pointing at the virtual
+IP.
+
+> **Why not `10.96.0.x`?** kubeadm's default service range is `10.96.0.0/12` — everything from `10.96.0.0` to `10.111.255.255` — and ClusterIPs are allocated across it, so yours may well read `10.103.244.102`. Only `kube-dns` is predictable: it always takes the tenth address, `10.96.0.10`. Confirm the range your cluster uses with
+> `kubectl -n kube-system get pod -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' | tr ',' '\n' | grep service-cluster-ip-range`.
+
 
 > The Service is written out instead of using `kubectl expose` for one reason: `expose`
 > creates an **unnamed** port, and SRV records are published as

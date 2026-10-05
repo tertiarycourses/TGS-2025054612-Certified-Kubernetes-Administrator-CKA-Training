@@ -25,8 +25,10 @@ CIP=$(kubectl get svc web-clusterip -o jsonpath='{.spec.clusterIP}')
 kubectl run probe --image=busybox --rm -it --restart=Never -- wget -qO- $CIP | head -5
 ```
 
-**Expected result:** the Service has a `10.96.x.x` ClusterIP, its endpoints list **three**
-pod IPs on port 80, and the probe prints nginx's welcome HTML.
+**Expected result:** the Service has a ClusterIP from the service range (kubeadm's default
+is `10.96.0.0/12`, so anything up to `10.111.255.255` — `10.103.244.102` is as valid as
+`10.96.1.5`), its endpoints list **three** pod IPs on port 80, and the probe prints nginx's
+welcome HTML.
 
 ```bash
 curl -s --max-time 5 http://$CIP || echo "not reachable from the node - correct"

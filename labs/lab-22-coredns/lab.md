@@ -37,8 +37,11 @@ search default.svc.cluster.local svc.cluster.local cluster.local
 options ndots:5
 ```
 
-The `nameserver` is the kube-dns ClusterIP, and the `search` list is why short names work
-inside the cluster.
+The `nameserver` is the kube-dns ClusterIP — always the tenth address of the service
+range — and the `search` list is why short names work inside the cluster.
+
+> **`;; Got recursion not available from 10.96.0.10` is not an error.** CoreDNS answers for cluster names but does not advertise *recursion* to pods, so BIND's `nslookup` prints that line before and after a perfectly good answer. If the `Name:` and `Address:` lines are there, DNS worked. `dig` shows the same thing as a missing `ra` flag in its header.
+
 
 ---
 
@@ -63,8 +66,13 @@ kubectl exec dnsdebug -- dig +short web.default.svc.cluster.local
 kubectl exec dnsdebug -- dig +short web   # short name via search list
 ```
 
-**Expected result:** both lookups return the Service's ClusterIP (a `10.96.x.x` address),
-not a pod IP. A ClusterIP Service gets one A record pointing at the virtual IP.
+**Expected result:** both lookups return the Service's ClusterIP — an address from the
+service range, not a pod IP. A ClusterIP Service gets one A record pointing at the virtual
+IP.
+
+> **Why not `10.96.0.x`?** kubeadm's default service range is `10.96.0.0/12` — everything from `10.96.0.0` to `10.111.255.255` — and ClusterIPs are allocated across it, so yours may well read `10.103.244.102`. Only `kube-dns` is predictable: it always takes the tenth address, `10.96.0.10`. Confirm the range your cluster uses with
+> `kubectl -n kube-system get pod -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' | tr ',' '\n' | grep service-cluster-ip-range`.
+
 
 > The Service is written out instead of using `kubectl expose` for one reason: `expose`
 > creates an **unnamed** port, and SRV records are published as
@@ -193,6 +201,7 @@ later.
 | `dig: command not found` | Run it from the `dnsdebug` (netshoot) pod, not the node. |
 | Short name resolves but the FQDN does not | Check the `search` list and that you used `.svc.cluster.local`. |
 | `nslookup` works but `dig` is empty | `dig +short` prints nothing on NXDOMAIN — drop `+short` to see the status. |
+| `;; Got recursion not available from 10.96.0.10` | Cosmetic: CoreDNS does not advertise recursion to pods. The `Name:`/`Address:` lines are the real answer. |
 
 ---
 
