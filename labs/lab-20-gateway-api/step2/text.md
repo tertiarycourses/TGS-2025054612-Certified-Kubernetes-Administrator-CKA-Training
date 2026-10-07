@@ -6,13 +6,30 @@ current release, and the **nodeport** variant so there is a port you can curl on
 playground:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v2.7.2/deploy/crds.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v2.7.2/deploy/crds.yaml
+kubectl get crds | grep gateway.nginx.org | head
+```
+
+**Expected result:** twelve or so `gateway.nginx.org` CRDs, including
+**`nginxproxies.gateway.nginx.org`** — the big one, and the reason `--server-side` is not
+optional here.
+
+Only once those exist can the controller be installed, because its manifest contains an
+`NginxProxy` resource:
+
+```bash
 kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v2.7.2/deploy/nodeport/deploy.yaml
 kubectl -n nginx-gateway wait --for=condition=Ready pod \
   -l app.kubernetes.io/name=nginx-gateway --timeout=300s
 kubectl -n nginx-gateway get pods
 kubectl get gatewayclass
 ```
+
+> **Order matters, and the error says so.** If the CRD apply is skipped or fails, this step
+> stops with
+> `no matches for kind "NginxProxy" in version "gateway.nginx.org/v1alpha2"` and
+> `ensure CRDs are installed first`. Install the CRDs, then re-run this.
+
 
 **Expected result:** the `nginx-gateway` pod is `Running` (a short-lived
 `nginx-gateway-cert-generator` Job shows `Completed`), and a GatewayClass named **nginx**

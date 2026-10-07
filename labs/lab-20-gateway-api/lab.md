@@ -11,12 +11,22 @@ The Gateway API is **not** built into Kubernetes — it ships as CRDs. Install t
 your controller supports, not simply the newest:
 
 ```bash
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
+kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
 kubectl get crds | grep gateway.networking.k8s.io
 ```
 
-**Expected result:** `gatewayclasses`, `gateways`, `grpcroutes` and `httproutes` in group
+**Expected result:** each CRD reported as `serverside-applied`, and the list shows
+`gatewayclasses`, `gateways`, `grpcroutes` and `httproutes` in group
 `gateway.networking.k8s.io`.
+
+> **Why `--server-side`?** Plain `kubectl apply` saves a copy of everything it sends in the `kubectl.kubernetes.io/last-applied-configuration` **annotation**, and annotations may not exceed **262144 bytes**. These CRDs are far bigger — Gateway API's `httproutes` is about 429 KB and NGF's `nginxproxies` about 700 KB — so a client-side apply fails with:
+>
+> ```text
+> The CustomResourceDefinition "..." is invalid: metadata.annotations: Too long: may not be more than 262144 bytes
+> ```
+>
+> Server-side apply has the API server track field ownership instead of writing that annotation, so size stops mattering. If you already tried a client-side apply, add `--force-conflicts` to take ownership of the fields it left behind.
+
 
 > **Why v1.6.1?** NGINX Gateway Fabric v2.7.2 (Step 2) is built against Gateway API v1.6.1
 > and also supports v1.5.1. Mismatched versions are the usual cause of a Gateway that never
@@ -33,13 +43,30 @@ current release, and the **nodeport** variant so there is a port you can curl on
 playground:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v2.7.2/deploy/crds.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v2.7.2/deploy/crds.yaml
+kubectl get crds | grep gateway.nginx.org | head
+```
+
+**Expected result:** twelve or so `gateway.nginx.org` CRDs, including
+**`nginxproxies.gateway.nginx.org`** — the big one, and the reason `--server-side` is not
+optional here.
+
+Only once those exist can the controller be installed, because its manifest contains an
+`NginxProxy` resource:
+
+```bash
 kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v2.7.2/deploy/nodeport/deploy.yaml
 kubectl -n nginx-gateway wait --for=condition=Ready pod \
   -l app.kubernetes.io/name=nginx-gateway --timeout=300s
 kubectl -n nginx-gateway get pods
 kubectl get gatewayclass
 ```
+
+> **Order matters, and the error says so.** If the CRD apply is skipped or fails, this step
+> stops with
+> `no matches for kind "NginxProxy" in version "gateway.nginx.org/v1alpha2"` and
+> `ensure CRDs are installed first`. Install the CRDs, then re-run this.
+
 
 **Expected result:** the `nginx-gateway` pod is `Running` (a short-lived
 `nginx-gateway-cert-generator` Job shows `Completed`), and a GatewayClass named **nginx**
@@ -201,8 +228,8 @@ the cluster — CRD deletion is cluster-wide and irreversible.
 
 | Check | Expected |
 |---|---|
-| Step 1 — Gateway API CRDs | `gatewayclasses`, `gateways`, `httproutes` in `gateway.networking.k8s.io` |
-| Step 2 — controller | `nginx-gateway` pod Running; GatewayClass `nginx` `ACCEPTED True` |
+| Step 1 — Gateway API CRDs | each `serverside-applied`; `gatewayclasses`, `gateways`, `httproutes` present in `gateway.networking.k8s.io` |
+| Step 2 — controller | `nginxproxies` CRD installed, `nginx-gateway` pod Running, GatewayClass `nginx` `ACCEPTED True` |
 | Step 3 — backend | `echo` Deployment and Service created |
 | Step 4 — Gateway | `PROGRAMMED True`, and a provisioned `web-nginx` Deployment/Service appears |
 | Step 5 — HTTPRoute | `Accepted=True` and `ResolvedRefs=True` |
@@ -213,6 +240,8 @@ the cluster — CRD deletion is cluster-wide and irreversible.
 
 | Symptom | Cause and fix |
 |---|---|
+| `metadata.annotations: Too long: may not be more than 262144 bytes` | The CRD is bigger than the annotation limit client-side apply uses. Re-run with `kubectl apply --server-side` (add `--force-conflicts` if a client-side apply already touched it). |
+| `no matches for kind "NginxProxy" … ensure CRDs are installed first` | The CRD apply did not complete — fix the error above first, then re-apply `deploy/nodeport/deploy.yaml`. |
 | `404 page not found` fetching the controller manifest | The old `nginxinc` path is gone. Use the `nginx/nginx-gateway-fabric` v2 URLs in Step 2. |
 | `wait` times out with no matching pods | The v2 label is `app.kubernetes.io/name=nginx-gateway`, not `nginx-gateway-fabric`. |
 | GatewayClass is not `ACCEPTED` | Gateway API CRD version mismatch — NGF v2.7.2 wants v1.6.1 (or v1.5.1). |
