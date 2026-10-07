@@ -18,7 +18,7 @@
         "text": "step3/text.md"
       },
       {
-        "title": "Step 4: Logs from the host",
+        "title": "Step 4: Logs from the host (on the pod's own node)",
         "text": "step4/text.md"
       },
       {
