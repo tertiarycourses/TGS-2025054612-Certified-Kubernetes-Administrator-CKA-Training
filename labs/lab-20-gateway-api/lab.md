@@ -84,7 +84,28 @@ is `ACCEPTED True` with controller `gateway.nginx.org/nginx-gateway-controller`.
 ```bash
 kubectl create deployment echo --image=hashicorp/http-echo --port=5678 -- -text="gateway works"
 kubectl expose deploy echo --port=80 --target-port=5678
+kubectl rollout status deploy/echo --timeout=180s
+kubectl get endpointslices -l kubernetes.io/service-name=echo \
+  -o jsonpath='{range .items[*].endpoints[*]}{.addresses[0]} ready={.conditions.ready}{"\n"}{end}'
 ```
+
+**Expected result:** `deployment "echo" successfully rolled out`, and one endpoint address
+with `ready=true`.
+
+**Do not skip the wait.** A Gateway can only route to a *ready* endpoint. Curl too early
+and you get `503 Service Temporarily Unavailable` from the data plane — the route is fine,
+there is simply nothing healthy behind it. Confirm the backend works before involving the
+Gateway at all:
+
+```bash
+kubectl run probe --image=busybox:1.36 --rm -it --restart=Never -- wget -qO- http://echo
+```
+
+**Expected result:** `gateway works` — printed by the backend itself. Now any failure in
+Step 6 belongs to the Gateway, not the app.
+
+> `--target-port=5678` matters: `http-echo` listens on 5678 while the Service publishes 80.
+> A mismatch here is the other common cause of a 503.
 
 ---
 
@@ -170,6 +191,15 @@ kubectl -n default get svc "$GW_SVC"
 
 NODEPORT=$(kubectl -n default get svc "$GW_SVC" -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}')
 echo "nodePort: $NODEPORT"
+```
+
+Make sure the backend has a ready endpoint first — the data plane can only forward to one:
+
+```bash
+until kubectl get endpointslices -l kubernetes.io/service-name=echo \
+  -o jsonpath='{.items[*].endpoints[*].conditions.ready}' | grep -q true; do
+  echo "waiting for an echo endpoint..."; sleep 5
+done
 curl -s -H "Host: echo.local" http://localhost:$NODEPORT
 curl -s -o /dev/null -w "wrong host: %{http_code}\n" -H "Host: nope.local" http://localhost:$NODEPORT
 ```
@@ -181,8 +211,29 @@ gateway works
 wrong host: 404
 ```
 
-The matching host is routed by the HTTPRoute; anything else gets `404` — the same
-host-based routing as Ingress, but expressed in a separate, dev-owned object.
+**Read the two status codes — they localise any failure precisely:**
+
+| Response | Meaning |
+|---|---|
+| `gateway works` | host matched, route resolved, backend healthy |
+| `404` | **no route matched** — the `Host` header is not in the HTTPRoute's `hostnames` |
+| `503 Service Temporarily Unavailable` | route matched, but **no ready endpoint** behind the backend Service |
+
+So a `503` for `echo.local` is not a routing problem: the Gateway and HTTPRoute are working,
+and the `echo` pod is not ready (still pulling, crash-looping) or the Service's
+`targetPort` is wrong. Diagnose in that order:
+
+```bash
+kubectl get pods -l app=echo -o wide
+kubectl get endpointslices -l kubernetes.io/service-name=echo \
+  -o jsonpath='{range .items[*].endpoints[*]}{.addresses[0]} ready={.conditions.ready}{"\n"}{end}'
+kubectl get httproute echo-route -o jsonpath='{.status.parents[0].conditions[*].type}={.status.parents[0].conditions[*].status}{"\n"}'
+kubectl describe pod -l app=echo | tail -15
+```
+
+**Expected result:** a `Running` pod, one `ready=true` endpoint, and
+`Accepted=True ResolvedRefs=True` on the route. Whichever of those is wrong is your
+answer.
 
 ---
 
@@ -230,10 +281,10 @@ the cluster — CRD deletion is cluster-wide and irreversible.
 |---|---|
 | Step 1 — Gateway API CRDs | each `serverside-applied`; `gatewayclasses`, `gateways`, `httproutes` present in `gateway.networking.k8s.io` |
 | Step 2 — controller | `nginxproxies` CRD installed, `nginx-gateway` pod Running, GatewayClass `nginx` `ACCEPTED True` |
-| Step 3 — backend | `echo` Deployment and Service created |
+| Step 3 — backend | `echo` rolled out, one `ready=true` endpoint, and `wget http://echo` prints `gateway works` |
 | Step 4 — Gateway | `PROGRAMMED True`, and a provisioned `web-nginx` Deployment/Service appears |
 | Step 5 — HTTPRoute | `Accepted=True` and `ResolvedRefs=True` |
-| Step 6 — traffic | `gateway works` for `echo.local`, `404` for any other host |
+| Step 6 — traffic | `gateway works` for `echo.local`, `404` for any other host (a `503` means the backend is not ready) |
 | Step 8 — cleanup | deleting the Gateway removes its provisioned Deployment and Service |
 
 ## Troubleshooting
@@ -249,6 +300,7 @@ the cluster — CRD deletion is cluster-wide and irreversible.
 | No Service to curl in `nginx-gateway` | Correct for v2: the data plane is provisioned per Gateway in the Gateway's namespace. Use the discovery loop in Step 6. |
 | HTTPRoute `ResolvedRefs=False` | The `backendRefs` Service name or port is wrong, or it is in another namespace without a ReferenceGrant. |
 | `curl` returns 404 for the right host | `hostnames:` must match the `Host` header exactly — `echo.local` here. |
+| `503 Service Temporarily Unavailable` for the right host | The route matched but no **ready endpoint** exists. Check `kubectl get pods -l app=echo` and the EndpointSlice; also verify the Service's `targetPort` is 5678. Routing is fine — do not touch the Gateway. |
 
 ---
 
