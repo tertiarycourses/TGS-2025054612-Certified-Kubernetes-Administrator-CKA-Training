@@ -82,7 +82,8 @@ is `ACCEPTED True` with controller `gateway.nginx.org/nginx-gateway-controller`.
 ## Step 3 — Deploy a backend
 
 ```bash
-kubectl create deployment echo --image=hashicorp/http-echo:1.0 --port=5678 -- -text="gateway works"
+kubectl create deployment echo --image=hashicorp/http-echo:1.0 --port=5678 \
+  -- /http-echo -text="gateway works"
 kubectl expose deploy echo --port=80 --target-port=5678
 kubectl rollout status deploy/echo --timeout=180s
 kubectl get endpointslices -l kubernetes.io/service-name=echo \
@@ -104,11 +105,28 @@ kubectl run probe --image=busybox:1.36 --rm -it --restart=Never -- wget -qO- htt
 **Expected result:** `gateway works` — printed by the backend itself. Now any failure in
 Step 6 belongs to the Gateway, not the app.
 
-> `--target-port=5678` matters: `http-echo` listens on 5678 while the Service publishes 80.
-> A mismatch here is the other common cause of a 503. The image is pinned to `:1.0` rather
-> than `latest` so the lab behaves the same every time; its entrypoint is `/http-echo` and
-> it runs as non-root user `65532`, which is why the `-text=` value is passed as an
-> **argument**.
+> **Why `/http-echo` is repeated on the command line.** Everything after `--` in
+> `kubectl create deployment` becomes the container's **`command`**, which *replaces* the
+> image's `ENTRYPOINT` — it is not appended to it. Passing only the flag makes the kubelet
+> try to execute the flag as a program, and the pod dies with:
+>
+> ```text
+> exec: "-text=gateway works": executable file not found in $PATH
+> ```
+>
+> This image's entrypoint is `/http-echo`, so the command must be
+> `/http-echo -text="gateway works"`. The equivalent in YAML is `command: ["/http-echo"]`
+> plus `args: ["-text=gateway works"]`, and `kubectl run` has the same behaviour. Checking
+> an image's entrypoint before overriding it is the habit worth taking away:
+>
+> ```bash
+> kubectl get deploy echo -o jsonpath='{.spec.template.spec.containers[0].command}{"\n"}'
+> ```
+>
+> `--target-port=5678` matters too: `http-echo` listens on 5678 while the Service publishes
+> 80, and a mismatch there is the other common cause of a 503. The image is pinned to
+> `:1.0` rather than `latest` so the lab behaves the same every time, and it runs as
+> non-root user `65532`.
 
 If the rollout times out with `0 of 1 updated replicas are available` and the endpoint shows `ready=false`, the container never started. Read the events — they name the cause:
 
@@ -156,10 +174,18 @@ spec:
       namespaces: { from: All }
 EOF
 kubectl get gateway
+until [ "$(kubectl get gateway web \
+  -o jsonpath='{.status.conditions[?(@.type=="Programmed")].status}')" = "True" ]; do
+  echo "waiting for the Gateway to be programmed..."; sleep 5
+done
 kubectl get gateway web -o jsonpath='{.status.conditions[*].type}={.status.conditions[*].status}{"\n"}'
 ```
 
-**Expected result:** `web` reports `PROGRAMMED True` within a few seconds.
+**Expected result:** eventually `Accepted Programmed=True True`.
+
+Read immediately after `apply`, the Gateway shows `PROGRAMMED Unknown` and
+`Programmed=Unknown` — NGF has accepted it but has not finished provisioning the data
+plane yet, which is why this waits rather than reading the condition once.
 
 **This is where NGF v2 differs sharply from v1 and from Ingress:** creating the Gateway
 makes NGF **provision a data plane for it** — an nginx Deployment and Service in the
@@ -331,6 +357,8 @@ the cluster — CRD deletion is cluster-wide and irreversible.
 | HTTPRoute `ResolvedRefs=False` | The `backendRefs` Service name or port is wrong, or it is in another namespace without a ReferenceGrant. |
 | `curl` returns 404 for the right host | `hostnames:` must match the `Host` header exactly — `echo.local` here. |
 | `503 Service Temporarily Unavailable` for the right host | The route matched but no **ready endpoint** exists. Check `kubectl get pods -l app=echo` and the EndpointSlice; also verify the Service's `targetPort` is 5678. Routing is fine — do not touch the Gateway. |
+| `exec: "-text=gateway works": executable file not found in $PATH` (pod `RunContainerError`) | Everything after `--` becomes the container's `command` and replaces the image entrypoint. Include the binary: `-- /http-echo -text="gateway works"`. |
+| Gateway stuck at `PROGRAMMED Unknown` just after `apply` | Normal for a few seconds while NGF provisions the data plane — wait for the condition as Step 4 does. If it persists, see the `PROGRAMMED False` row below. |
 
 ---
 

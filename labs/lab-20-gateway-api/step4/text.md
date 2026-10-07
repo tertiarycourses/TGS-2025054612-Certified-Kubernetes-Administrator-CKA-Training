@@ -15,10 +15,18 @@ spec:
       namespaces: { from: All }
 EOF
 kubectl get gateway
+until [ "$(kubectl get gateway web \
+  -o jsonpath='{.status.conditions[?(@.type=="Programmed")].status}')" = "True" ]; do
+  echo "waiting for the Gateway to be programmed..."; sleep 5
+done
 kubectl get gateway web -o jsonpath='{.status.conditions[*].type}={.status.conditions[*].status}{"\n"}'
 ```
 
-**Expected result:** `web` reports `PROGRAMMED True` within a few seconds.
+**Expected result:** eventually `Accepted Programmed=True True`.
+
+Read immediately after `apply`, the Gateway shows `PROGRAMMED Unknown` and
+`Programmed=Unknown` — NGF has accepted it but has not finished provisioning the data
+plane yet, which is why this waits rather than reading the condition once.
 
 **This is where NGF v2 differs sharply from v1 and from Ingress:** creating the Gateway
 makes NGF **provision a data plane for it** — an nginx Deployment and Service in the
