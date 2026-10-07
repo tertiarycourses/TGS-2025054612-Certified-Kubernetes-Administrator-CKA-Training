@@ -33,10 +33,10 @@ On a 1-CPU node this can take two or three minutes — hence the 300s timeout.
 ## Step 2 — Deploy two backends
 
 ```bash
-kubectl create deployment app1 --image=hashicorp/http-echo:1.0 --port=5678 -- \
-  -text="hello from app1"
-kubectl create deployment app2 --image=hashicorp/http-echo:1.0 --port=5678 -- \
-  -text="hello from app2"
+kubectl create deployment app1 --image=hashicorp/http-echo:1.0 --port=5678 \
+  -- /http-echo -text="hello from app1"
+kubectl create deployment app2 --image=hashicorp/http-echo:1.0 --port=5678 \
+  -- /http-echo -text="hello from app2"
 kubectl rollout status deploy/app1 --timeout=180s
 kubectl rollout status deploy/app2 --timeout=180s
 kubectl expose deploy app1 --port=80 --target-port=5678
@@ -48,9 +48,27 @@ kubectl run probe --image=busybox:1.36 --rm -it --restart=Never -- wget -qO- htt
 **Expected result:** both pods Running, and the probe prints `hello from app1` — the
 backends work *before* any Ingress exists, so a later failure is the Ingress, not the app.
 
-> `--target-port=5678` matters: `http-echo` listens on 5678 while the Service publishes 80.
-> A mismatch here is the most common "502 from the Ingress" cause. The image is pinned to
-> `:1.0` rather than `latest` so the lab behaves the same every time.
+> **Why `/http-echo` appears on the command line.** Everything after `--` in
+> `kubectl create deployment` becomes the container's **`command`**, which *replaces* the
+> image's `ENTRYPOINT` instead of being appended to it. Pass only the flag and the kubelet
+> tries to execute the flag itself:
+>
+> ```text
+> exec: "-text=hello from app1": executable file not found in $PATH
+> ```
+>
+> The pod then sits in `RunContainerError`, the Service gets no ready endpoint, and the
+> Ingress returns 503 — a long way from the real cause. This image's entrypoint is
+> `/http-echo`, so the command must be `/http-echo -text="…"`. In YAML that is
+> `command: ["/http-echo"]` with `args: ["-text=…"]`. Verify what you actually set:
+>
+> ```bash
+> kubectl get deploy app1 -o jsonpath='{.spec.template.spec.containers[0].command}{"\n"}'
+> ```
+>
+> `--target-port=5678` matters too: `http-echo` listens on 5678 while the Service publishes
+> 80, and a mismatch there is the most common "502 from the Ingress" cause. The image is
+> pinned to `:1.0` rather than `latest` so the lab behaves the same every time.
 
 If the rollout times out with `0 of 1 updated replicas are available` and the endpoint shows `ready=false`, the container never started. Read the events — they name the cause:
 
@@ -209,6 +227,8 @@ rm tls.key tls.crt
 | Controller pod `Pending` for minutes | 1 CPU is tight. Wait, or `kubectl -n ingress-nginx describe pod` for `Insufficient cpu`. |
 | `ADDRESS` on the Ingress stays empty | No controller claimed it: check `ingressClassName: nginx` against `kubectl get ingressclass`. |
 | `502 Bad Gateway` | The Service's `--target-port` does not match the container port (5678 for http-echo). |
+| `exec: "-text=…": executable file not found in $PATH` (pod `RunContainerError`) | Everything after `--` becomes the container's `command` and replaces the image entrypoint. Include the binary: `-- /http-echo -text="…"`. |
+| `503 Service Temporarily Unavailable` from the Ingress | The route matched but the backend has no **ready endpoint** — check the pods and the EndpointSlice before touching the Ingress. |
 | `404` for every request | A missing or misspelled `Host` header, or a host that is not in the rules. |
 | `admission webhook "validate.nginx.ingress.kubernetes.io" denied` | The admission Job has not finished. Wait for `Completed`, then re-apply. |
 | TLS still serves the default certificate | The Secret name or namespace is wrong — it must be in the Ingress's namespace and of type `kubernetes.io/tls`. |
